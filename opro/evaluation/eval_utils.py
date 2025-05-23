@@ -22,15 +22,17 @@ import re
 import string
 import sys
 import time
+from tqdm import tqdm
+
+import numpy as np
+from opro.evaluation import metrics
+import pandas as pd
+from sklearn.metrics import f1_score
 
 OPRO_ROOT_PATH = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 )
 sys.path.insert(0, OPRO_ROOT_PATH)
-
-import numpy as np
-from opro.evaluation import metrics
-import pandas as pd
 
 # the Boolean symbols appeared in BBH tasks
 BOOLEAN_SYMBOLS = [["false", "true"], ["no", "yes"], ["invalid", "valid"]]
@@ -77,7 +79,12 @@ def instruction_to_filename(instruction, md5_hashing=True):
   """Convert an instruction string to filename."""
   if md5_hashing:
     m = hashlib.md5()
-    m.update(instruction.encode("ascii"))
+    try:
+      # Try UTF-8 encoding first, which can handle all Unicode characters
+      m.update(instruction.encode("utf-8"))
+    except UnicodeEncodeError:
+      # Fallback to ASCII with error handling if UTF-8 fails
+      m.update(instruction.encode("ascii", errors="ignore"))
     filename = m.hexdigest()
   else:
     # remove punctuations and line break, and give a name to the empty string
@@ -120,7 +127,7 @@ def polish_sentence(sentence, add_ending_punc=False):
 # pylint: disable=invalid-name
 def _split_by_Q(sentence):
   """Split the response and only keep the part before the first "Q:"."""
-  return sentence.split("Q:")[0].strip()
+  return sentence.split("Text:")[0].strip()
 
 
 def _format_mmlu_example(data, idx, include_question=True):
@@ -165,9 +172,9 @@ def gen_prompt(
     data,
     instruction,
     idx,
-    include_qa=True,
+    include_qa=False,
     instruction_pos="Q_begin",
-    dataset_name="mmlu",
+    dataset_name="",
 ):
   """Generate a prompt from the available exemplars and the given instruction.
 
@@ -192,6 +199,7 @@ def gen_prompt(
       "mmlu",
       "bbh",
       "gsm8k",
+      "metareview",
       "multiarith",
       "aqua",
   }, (
@@ -214,6 +222,8 @@ def gen_prompt(
     question = data[idx]["input"]
   elif dataset_name == "gsm8k":
     question = data.iloc[idx, 0]
+  elif dataset_name == "metareview":
+    question = data.iloc[idx, 1]
   elif dataset_name == "multiarith":
     question = data[idx]["sQuestion"].strip()
   else:
@@ -250,14 +260,17 @@ def gen_prompt(
     assert instruction_pos in {"Q_begin", "Q_end"}
     if instruction_pos == "Q_begin":
       if instruction:
-        prompt += instruction + "\n"
-      prompt += question
+        prompt += f"# Task\n{instruction} \n\n# Output format\nAnswer Yes or No as labels\n\n"
+        # prompt += f"# Task\n{instruction} \n\n"
+      prompt += f"# Prediction\nText: {question}\n"
     else:  # instruction_pos == "Q_end"
-      prompt += question
+      prompt += f"# Text: {question}\n"
       if instruction:
-        prompt += "\n" + instruction
+        prompt += f"# Task: {instruction}\n"
   return prompt
 
+
+# f"\ninput:\n{question}\n<INS>\n"
 
 def fetch_true_answer(data, idx, dataset_name):
   """Fetch the true answer of the dataset at the idx'th position."""
@@ -268,6 +281,7 @@ def fetch_true_answer(data, idx, dataset_name):
       "gsm8k",
       "multiarith",
       "aqua",
+      "metareview",
   }, (
       "The lower-case dataset name must be one of mmlu, bbh, gsm8k, multiarith,"
       " or aqua."
@@ -276,8 +290,8 @@ def fetch_true_answer(data, idx, dataset_name):
     return data.iloc[idx, -1]
   elif dataset_name == "bbh":
     return data[idx]["target"]
-  elif dataset_name == "gsm8k":
-    return data.iloc[idx, 1]
+  elif dataset_name == "metareview":
+    return "Yes" if data.iloc[idx, 2] == 1 else "No"
   elif dataset_name == "multiarith":
     return int(data[idx]["lSolutions"][0])
   else:
@@ -339,7 +353,7 @@ def _prompting_to_get_raw_answers(
     prompts,
     call_server_func,
     server_index=1,
-    max_retry=1,
+    max_retry=8,
     sleep_time=60,
     verbose=False,
 ):
@@ -352,7 +366,7 @@ def _prompting_to_get_raw_answers(
       inference server.
     server_index (int): (PaLM only) the index of the server to prompt.
     max_retry (int): the maximum number of retries.
-    sleep_time (int): the number of seconds to sleep before a retry.
+    sleep_time (int): the base number of seconds to sleep before a retry.
     verbose (bool): whether to print out progress information.
 
   Returns:
@@ -360,21 +374,33 @@ def _prompting_to_get_raw_answers(
     corresponding prompt. The output is a list even if the input is a list.
   """
   outputs = []
+  error_counts = {}  # Track different types of errors
+  
   for i in range(int(max_retry + 1)):
     if i > 0:
+      current_sleep_time = sleep_time * (2 ** (i - 1))
       if verbose:
         print(
-            f"retry {i}/{max_retry} after sleeping for {sleep_time:.0f} seconds"
+            f"retry {i}/{max_retry} after sleeping for {current_sleep_time:.0f} seconds"
         )
-      time.sleep(sleep_time)
+      time.sleep(current_sleep_time)
     try:
-      outputs = call_server_func(prompts, server_index=server_index)
-    except:  # pylint: disable=bare-except
+      outputs = call_server_func(prompts) 
+    except Exception as e:
+      error_type = type(e).__name__
+      error_counts[error_type] = error_counts.get(error_type, 0) + 1
+      if verbose:
+        print(f"Attempt {i+1} failed with error: {error_type}")
+        print(f"Error message: {str(e)}")
       continue
     break
-  assert (
-      outputs
-  ), "No prompting output after all retries, indicating possible server outage."
+    
+  if not outputs:
+    error_summary = "\n".join([f"{k}: {v} occurrences" for k, v in error_counts.items()])
+    raise RuntimeError(
+        f"No prompting output after all retries. Error summary:\n{error_summary}\n"
+        "This may indicate a server outage or configuration issue."
+    )
   return outputs
 
 
@@ -544,16 +570,16 @@ def evaluate_single_instruction(
     extract_final_answer_by_prompting_again,
     instruction_pos,
     is_multiple_choice,
-    include_qa=True,
+    include_qa=False,
     evaluate_in_parallel=True,
     num_decodes=1,
-    max_retry=5,
+    max_retry=8,
     sleep_time=60,
     prediction_treat_as_number=False,
     prediction_treat_as_bool=False,
     prediction_num_decimals=0,
-    is_gpt_model=False,
-    verbose=False,
+    is_gpt_model=True,
+    verbose=True,
 ):
   r"""Evaluate a single instruction on the given indices of the given data.
 
@@ -625,6 +651,7 @@ def evaluate_single_instruction(
         len(is_multiple_choice) == num_eval_examples
     ), "is_multiple_choice must have the same length as eval_index_all"
 
+  # get 1 or 0 
   true_answers = [
       fetch_true_answer(data, idx=idx, dataset_name=dataset_name)
       for idx in eval_index_all
@@ -644,6 +671,7 @@ def evaluate_single_instruction(
     raw_prompts_flattened.append(raw_prompt)
 
   if evaluate_in_parallel:
+    print(f"Eval in parallel with num_eval_examples: {len(raw_prompts_flattened)} ")
 
     def _prompt_a_list_in_parallel(
         raw_prompts_flattened,
@@ -664,44 +692,35 @@ def evaluate_single_instruction(
       if raw_prompts_single_batch:
         raw_prompts_grouped_by_batch_size.append(raw_prompts_single_batch)
 
-      server_indices = [
-          i % num_servers + 1
-          for i in range(len(raw_prompts_grouped_by_batch_size))
-      ]  # [1, 2, ..., num_servers, 1, 2, ..., num_servers, 1, 2, ...]
-
-      p1 = mp.Pool(num_servers)
-      # pylint: disable=g-complex-comprehension
-      r = [
-          p1.apply_async(
-              _prompting_to_get_raw_answers,
-              args=[
-                  raw_prompts_single_batch,
-                  call_server_local_func,
-                  server_index,
-                  max_retry,
-                  sleep_time,
-                  verbose,
-              ],
-          )
-          for raw_prompts_single_batch, server_index in list(
-              zip(raw_prompts_grouped_by_batch_size, server_indices)
-          )
-      ]
-      p1.close()
-      p1.join()
+      r = []
+      total_answers = 0
+      total_pbar = tqdm(total=len(raw_prompts_flattened), desc="Total answers", position=1)
+      for raw_prompts_single_batch in tqdm(raw_prompts_grouped_by_batch_size, desc="Processing batches"):
+        batch_results = _prompting_to_get_raw_answers(
+          raw_prompts_single_batch,
+          call_server_local_func,
+          server_index= -1,
+          max_retry=max_retry,
+          sleep_time=sleep_time,
+          verbose=verbose,
+        )
+        r.append(batch_results)
+        total_answers += len(batch_results)
+        total_pbar.update(len(batch_results))
+      total_pbar.close()
 
       raw_answers = []
       for i in range(len(raw_prompts_grouped_by_batch_size)):
         # when there're multiple decodes, only retain the first answer
-        raw_answers += r[i].get()[:batch_size]
+        raw_answers += r[i][:batch_size]
       return raw_answers
 
     # first round of prompting to get raw answers
-    raw_answers = _prompt_a_list_in_parallel(
-        raw_prompts_flattened=raw_prompts_flattened,
-        num_servers=num_servers,
-        call_server_local_func=call_server_func,
-    )
+    # raw_answers = _prompt_a_list_in_parallel(
+    #     raw_prompts_flattened=raw_prompts_flattened, 
+    #     num_servers=num_servers,
+    #     call_server_local_func=call_server_func,
+    # )
   else:  # no parallelism in first round
     raw_answers = [
         call_server_func(prompt)[0] for prompt in raw_prompts_flattened
@@ -710,18 +729,24 @@ def evaluate_single_instruction(
   if verbose:
     print("first round of prompting finished")
 
+ 
+
   # prompt again to better extract answers
   if extract_final_answer_by_prompting_again:
-    raw_prompts_flattened_second_round = list(
-        map(
-            lambda a, b: a + " " + _split_by_Q(b),
-            raw_prompts_flattened,
-            raw_answers,
-        )
-    )
+    if verbose:
+      print("Prompting again to better extract answers")
+      
+  
+    # raw_prompts_flattened_second_round = list(
+    #     map(
+    #         lambda a: a + "\n",
+    #         raw_prompts_flattened,
+    #     )
+    # )
+
     raw_prompts_flattened_second_round = [
-        item + " " + "So the final answer is"
-        for item in raw_prompts_flattened_second_round
+        item + "Label: "
+        for item in raw_prompts_flattened
     ]
 
     # second round of prompting to extract final answer
@@ -735,16 +760,34 @@ def evaluate_single_instruction(
           raw_prompts_flattened=raw_prompts_flattened_second_round,
           num_servers=num_servers,
           call_server_local_func=functools.partial(
-              call_server_func, max_decode_steps=50
+              call_server_func, max_decode_steps=1024
           ),
       )
     else:
       raw_answers_second_round = [
-          call_server_func(prompt, max_decode_steps=50)[0]
+          call_server_func(prompt, max_decode_steps=1024)[0]
           for prompt in raw_prompts_flattened_second_round
       ]
     if verbose:
       print("second round of prompting finished")
+
+
+   # calculate F1 score for accuracies, take yes as 1 and no as 0, based on true_answers
+  true_answers_binary = [1 if str(ans).lower() == "yes" else 0 for ans in true_answers]
+  accuracies_binary = [0] * len(raw_answers_second_round)
+  if extract_final_answer_by_prompting_again:
+    for i, ans in enumerate(raw_answers_second_round):
+      if str(ans).lower() == "yes":
+        accuracies_binary[i] = 1
+      elif str(ans).lower() == "no":
+        accuracies_binary[i] = 0
+      else:
+        accuracies_binary[i] = 1 - true_answers_binary[i]
+  else:
+    accuracies_binary = [1 if str(ans).lower() == "yes" else 0 for ans in raw_answers]
+  print(f"raw_answers_second_round: {raw_answers_second_round}")
+  score_f1 = f1_score(true_answers_binary, accuracies_binary, average='micro')
+  print(f"second round of prompting - F1 score: {score_f1}")
 
   if verbose:
     print(
@@ -764,8 +807,8 @@ def evaluate_single_instruction(
   # stripping
   # .split("Q:")[0] - extract the texts before "Q:" after the above stripping
   def _extract_second_round_answer_for_parsing(ans):
-    return ans.strip(":").strip().split("\n")[0].split("Q:")[0]
-
+    return ans.strip(":").strip().split("\n")[0].split("Taxt:")[0]
+  
   raw_answers_to_parse = (
       list(  # pylint: disable=g-long-ternary
           map(
@@ -791,7 +834,7 @@ def evaluate_single_instruction(
     if is_gpt_model and r"\boxed" in x:
       return re.findall(r"\\boxed{(.*?)}", x)[0]
     else:
-      return metrics.get_normalized_prediction(
+      return metrics.get_normalized_prediction (
           x,
           treat_as_number=treat_as_number,
           num_decimals=num_decimals,
@@ -817,6 +860,8 @@ def evaluate_single_instruction(
         _extract_second_round_answer_for_parsing(item) for item in choices
     ]
 
+  
+  # accuracies or F1 scores ??
   accuracies = []
   for i, _ in enumerate(eval_index_all):
     treat_include_as_correct = not prediction_treat_as_number_list[i]
@@ -831,15 +876,17 @@ def evaluate_single_instruction(
     )
     accuracies.append(accuracy)
 
+
   detailed_results_df = pd.DataFrame(
       list(
           zip(
               eval_index_all,
               raw_prompts_flattened,
-              raw_answers,
+              raw_answers_second_round,
               choices,
               true_answers,
               accuracies,
+              [score_f1] * len(eval_index_all),
           )
       ),
       columns=[
@@ -849,6 +896,7 @@ def evaluate_single_instruction(
           "parsed_answer",
           "true_answer",
           "accuracy",
+          "f1_score",
       ],
   )
   if extract_final_answer_by_prompting_again:

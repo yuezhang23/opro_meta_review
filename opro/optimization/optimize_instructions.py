@@ -45,7 +45,7 @@ import datetime
 import functools
 import os
 import sys
-
+from dotenv import dotenv_values
 OPRO_ROOT_PATH = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 )
@@ -59,37 +59,47 @@ import openai
 from opro import prompt_utils
 from opro.optimization import opt_utils
 import pandas as pd
+import read_data
+from liquid import Template
 
+
+config = dotenv_values(os.path.join(OPRO_ROOT_PATH, ".env"))
 ROOT_DATA_FOLDER_PATH = os.path.join(OPRO_ROOT_PATH, "data")
 
-_OPENAI_API_KEY = flags.DEFINE_string(
-    "openai_api_key", "", "The OpenAI API key."
-)
+# _OPENAI_API_KEY = flags.DEFINE_string(
+#     "openai_api_key", "", "The OpenAI API key."
+# )
 
 _PALM_API_KEY = flags.DEFINE_string("palm_api_key", "", "The PaLM API key.")
 
 _SCORER = flags.DEFINE_string(
-    "scorer", "text-bison", "The name of the scorer LLM."
+    "scorer", "gpt-4o-mini", "The name of the scorer LLM."
 )
 
 _OPTIMIZER = flags.DEFINE_string(
-    "optimizer", "gpt-3.5-turbo", "The name of the optimizer LLM."
+    "optimizer", "gpt-4o-mini", "The name of the optimizer LLM."
 )
 
 _DATASET = flags.DEFINE_string(
-    "dataset", "gsm8k", "The name of dataset to search for instructions on."
+    "dataset", "metareview", "The name of dataset to search for instructions on."
 )
 
 _TASK = flags.DEFINE_string(
     "task",
-    "train",
-    "The name of task within the above dataset to search for instructions on.",
+    "train, test",
+    "The name of task(s) within the above dataset to search for instructions on. Multiple tasks can be specified using comma separation (e.g. 'train,test').",
 )
 
 _INSTRUCTION_POS = flags.DEFINE_string(
     "instruction_pos",
-    "A_begin",
+    "Q_begin",
     "The position of the instruction to search for.",
+) 
+
+_INITIAL_PROMPTS = flags.DEFINE_string(
+    "initial_prompts",
+    "Given the reviews (Text), answer if a paper would be accepted (Yes) or not (No) by an academic conference.", 
+    "The initial instructions to search for.",
 )
 
 _META_PROMPT_TYPE = flags.DEFINE_string(
@@ -102,7 +112,7 @@ _META_PROMPT_TYPE = flags.DEFINE_string(
 
 
 def main(_):
-  openai_api_key = _OPENAI_API_KEY.value
+  openai_api_key = config["OPENAI_API_KEY"]
   palm_api_key = _PALM_API_KEY.value
   scorer_llm_name = _SCORER.value
   optimizer_llm_name = _OPTIMIZER.value
@@ -114,6 +124,7 @@ def main(_):
       "mmlu",
       "bbh",
       "gsm8k",
+      "metareview",
   }, "The lower-case dataset name must be one of mmlu, bbh, or gsm8k."
   if dataset_name == "mmlu":
     assert task_name in {
@@ -153,18 +164,18 @@ def main(_):
         "word_sorting",
     }
   else:
-    assert dataset_name == "gsm8k"
-    assert task_name in {"train", "test"}
+    assert dataset_name == "metareview"
+    assert task_name in {"train", "test", "train,test"}
 
   assert scorer_llm_name in {
       "text-bison",
       "gpt-3.5-turbo",
-      "gpt-4",
+      "gpt-4o-mini",
   }
   assert optimizer_llm_name in {
       "text-bison",
       "gpt-3.5-turbo",
-      "gpt-4",
+      "gpt-4o-mini",
   }
   assert meta_prompt_type in {
       "both_instructions_and_exemplars",
@@ -185,10 +196,11 @@ def main(_):
   print(
       f"scorer: {scorer_llm_name}, optimizer: {optimizer_llm_name}, dataset:"
       f" {dataset_name}, task: {task_name}, instruction_pos: {instruction_pos}"
+      f" initial_prompts: {_INITIAL_PROMPTS.value}"
   )
 
   # make sure the scorer and optimizer models are callable
-  if scorer_llm_name in {"gpt-3.5-turbo", "gpt-4"}:
+  if scorer_llm_name in {"gpt-3.5-turbo", "gpt-4o-mini"}:
     assert openai_api_key, "The OpenAI API key must be provided."
     openai.api_key = openai_api_key
   else:
@@ -198,7 +210,7 @@ def main(_):
     ), "A PaLM API key is needed when prompting the text-bison model."
     palm.configure(api_key=palm_api_key)
 
-  if optimizer_llm_name in {"gpt-3.5-turbo", "gpt-4"}:
+  if optimizer_llm_name in {"gpt-3.5-turbo", "gpt-4o-mini"}:
     assert openai_api_key, "The OpenAI API key must be provided."
     openai.api_key = openai_api_key
   else:
@@ -215,8 +227,8 @@ def main(_):
         ROOT_DATA_FOLDER_PATH, "BIG-Bench-Hard-data/"
     )
   else:
-    assert dataset_name == "gsm8k"
-    root_data_folder_path = os.path.join(ROOT_DATA_FOLDER_PATH, "gsm_data")
+    assert dataset_name == "metareview"
+    root_data_folder_path = os.path.join(ROOT_DATA_FOLDER_PATH, "review_data")
 
   # =================== create the result directory ==========================
   datetime_str = (
@@ -275,7 +287,7 @@ def main(_):
     call_scorer_server_func = call_scorer_finetuned_palm_server_func
 
   else:
-    assert scorer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4"}
+    assert scorer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4o-mini"}
     scorer_gpt_max_decode_steps = 1024
     scorer_gpt_temperature = 0.0
 
@@ -283,8 +295,9 @@ def main(_):
     scorer_gpt_dict["max_decode_steps"] = scorer_gpt_max_decode_steps
     scorer_gpt_dict["temperature"] = scorer_gpt_temperature
     scorer_gpt_dict["num_decodes"] = 1
-    scorer_gpt_dict["batch_size"] = 1
-    scorer_gpt_dict["num_servers"] = 1
+    # tunable parameter
+    scorer_gpt_dict["batch_size"] = 6
+    scorer_gpt_dict["num_servers"] = 8
 
     scorer_llm_dict = {
         "model_type": scorer_llm_name.lower(),
@@ -336,9 +349,9 @@ def main(_):
     call_optimizer_server_func = call_optimizer_finetuned_palm_server_func
 
   else:
-    assert optimizer_llm_name in {"gpt-3.5-turbo", "gpt-4"}
-    optimizer_gpt_max_decode_steps = 512
-    optimizer_gpt_temperature = 1.0
+    assert optimizer_llm_name in {"gpt-3.5-turbo", "gpt-4o-mini"}
+    optimizer_gpt_max_decode_steps = 1024
+    optimizer_gpt_temperature = 1.3
 
     optimizer_llm_dict = dict()
     optimizer_llm_dict["max_decode_steps"] = optimizer_gpt_max_decode_steps
@@ -355,13 +368,15 @@ def main(_):
   # ====================== try calling the servers ============================
   print("\n======== testing the scorer and optimizer servers ===========")
   scorer_test_output = call_scorer_server_func(
-      "Does the sun rise from the north? Just answer yes or no."
+      ["Does the sun rise from the north? Just answer yes or no.", "is the sky blue? just answer yes or no"],
+      temperature=0.0,
   )
   print(f"number of scorer output decodes: {len(scorer_test_output)}")
   print(f"scorer test output: {scorer_test_output}")
+  
   optimizer_test_output = call_optimizer_server_func(
       "Does the sun rise from the north? Just answer yes or no.",
-      temperature=1.0,
+      temperature=1.3,
   )
   print(f"number of optimizer output decodes: {len(optimizer_test_output)}")
   print(f"optimizer test output: {optimizer_test_output}")
@@ -511,36 +526,6 @@ def main(_):
         len(tasks_all) == 1
     ), "for now only support prompt optimization on one BBH task"
 
-    # all BBH tasks are as below
-    # tasks_all = [
-    #     'boolean_expressions',
-    #     'causal_judgement',
-    #     'date_understanding',
-    #     'disambiguation_qa',
-    #     'dyck_languages',
-    #     'formal_fallacies',
-    #     'geometric_shapes',
-    #     'hyperbaton',
-    #     'logical_deduction_five_objects',
-    #     'logical_deduction_seven_objects',
-    #     'logical_deduction_three_objects',
-    #     'movie_recommendation',
-    #     'multistep_arithmetic_two',
-    #     'navigate',
-    #     'object_counting',
-    #     'penguins_in_a_table',
-    #     'reasoning_about_colored_objects',
-    #     'ruin_names',
-    #     'salient_translation_error_detection',
-    #     'snarks',
-    #     'sports_understanding',
-    #     'temporal_sequences',
-    #     'tracking_shuffled_objects_five_objects',
-    #     'tracking_shuffled_objects_seven_objects',
-    #     'tracking_shuffled_objects_three_objects',
-    #     'web_of_lies',
-    #     'word_sorting'
-    # ]
     numerical_output_tasks = {
         "object_counting",
         "multistep_arithmetic_two",
@@ -576,11 +561,11 @@ def main(_):
     }
 
   else:
-    assert dataset_name in {"gsm8k"}
-    tasks_all = [task_name]
+    assert dataset_name in {"metareview"}
+    tasks_all = task_name.split(',')  # Split comma-separated tasks
     multiple_choice_tasks = set()
-    boolean_tasks = set()
-    numerical_output_tasks = set(tasks_all)
+    boolean_tasks = set(tasks_all)
+    numerical_output_tasks = set()
 
   if dataset_name == "mmlu":
     raw_data = pd.DataFrame()
@@ -599,10 +584,10 @@ def main(_):
         f" prediction_treat_as_bool: {prediction_treat_as_bool}"
     )
   else:
-    assert dataset_name == "gsm8k"
+    assert dataset_name == "metareview"
     raw_data = pd.DataFrame()
-    prediction_treat_as_number = True
-    prediction_treat_as_bool = False
+    prediction_treat_as_number = False
+    prediction_treat_as_bool = True
 
   for t in tasks_all:
     if dataset_name == "mmlu":
@@ -621,28 +606,31 @@ def main(_):
       )
       raw_data += single_task_list
     else:
-      assert dataset_name == "gsm8k"
+      assert dataset_name == "metareview"
       task_name = t
-      f_gsm = os.path.join(root_data_folder_path, f"gsm_{task_name}.tsv")
-      single_task_df = pd.read_csv(f_gsm, sep="\t", header=None)
+      f_gsm = os.path.join(root_data_folder_path, f"review_{task_name}.csv")
+      single_task_df = pd.read_csv(f_gsm, sep=";", header=None)
       raw_data = pd.concat([raw_data, single_task_df])
+
+  if (len(raw_data) > 1000):
+    raw_data = raw_data.sample(1000)
 
   if dataset_name == "mmlu":
     num_examples = raw_data.shape[0]
   elif dataset_name == "bbh":
     num_examples = len(raw_data)
   else:
-    assert dataset_name in {"gsm8k"}
-    num_examples = raw_data.shape[0]
-  print(f"number of examples in the current task: {num_examples}")
+    assert dataset_name in {"metareview"}
+    num_examples = len(raw_data)
+    print(f"number of examples: {num_examples}")
 
   # ================ split data into train/val/test ==========================
   if dataset_name == "mmlu":
     train_ratio = 0.8
     eval_ratio = 0.2
-  elif dataset_name == "gsm8k":
-    train_ratio = 0.035
-    eval_ratio = 0
+  elif dataset_name == "metareview":
+    train_ratio = 0.3
+    eval_ratio = 0.3
   else:
     assert dataset_name == "bbh"
     train_ratio = 0.2
@@ -678,23 +666,24 @@ def main(_):
       )
   )
 
+
   # ========== set other optimization experiment hyperparameters ==============
   if scorer_llm_name == "text-bison":
     old_instruction_score_threshold = 0.0
     # old_instruction_score_threshold = 0.15  # for GSM8K
   else:
-    assert scorer_llm_name in {"gpt-3.5-turbo", "gpt-4"}
-    old_instruction_score_threshold = 0.3
+    assert scorer_llm_name in {"gpt-3.5-turbo", "gpt-4o-mini"}
+    old_instruction_score_threshold = 0.5
 
   if scorer_llm_name == "text-bison":
     extract_final_answer_by_prompting_again = False
     include_qa = False
     evaluate_in_parallel = False
   else:
-    assert scorer_llm_name in {"gpt-3.5-turbo", "gpt-4"}
-    extract_final_answer_by_prompting_again = False
+    assert scorer_llm_name in {"gpt-3.5-turbo", "gpt-4o-mini"}
+    extract_final_answer_by_prompting_again = True
     include_qa = False
-    evaluate_in_parallel = False
+    evaluate_in_parallel = True
 
   optimizer_llm_temperature = optimizer_llm_dict["temperature"]
 
@@ -705,17 +694,16 @@ def main(_):
   # decodes in model parameters, because those values are limited by model
   # serving configs.
   num_generated_instructions_in_each_step = 8
-  num_search_steps = 200
+  num_search_steps = 150
 
-  initial_instructions = [
-      "Let's solve the problem.",
-      # "",
-      # "The answer is",
-  ]
+
+  initial_instructions = [_INITIAL_PROMPTS.value, "Given the reviews of an academic paper, evaluate the overall sentiment expressed by the reviewers, taking into account both the strengths and weaknesses highlighted. Pay special attention to how the reviewers reconcile positive contributions with any criticisms, and assess whether the overall impression leans towards acceptance or rejection. Specifically, consider the significance of the contributions, the robustness of experimental results, and the potential impact of the research. Based on this holistic view, label the paper as accepted (Yes) or rejected (No).",]
+
   few_shot_qa_pairs = True
   # one of {'accumulative_most_frequent', 'current_most_frequent', 'random',
   # 'constant'}
-  few_shot_selection_criteria = "random"
+  # show exemplars done wrong most often by currently shown instructions
+  few_shot_selection_criteria = 'current_most_frequent'
   # whether to evaluate generated instructions on the exemplars in meta-prompt
   evaluate_generated_ins_on_few_shot = False
   # whether to evaluate old instructions on the exemplars in the meta-prompt
@@ -725,7 +713,7 @@ def main(_):
   eval_interval = 3
 
   max_num_instructions = (
-      20  # the maximum number of instructions and scores in the meta-prompt
+      8  # the maximum number of instructions and scores in the meta-prompt
   )
   # The number of buckets when converting scores to integers in the meta-prompt.
   num_score_buckets = 100
@@ -794,6 +782,7 @@ def main(_):
       "evaluate_old_ins_on_few_shot": evaluate_old_ins_on_few_shot,
       "eval_interval": eval_interval,
       "save_folder": save_folder,
+      "verbose": True
   }
 
   opt_utils.run_evolution(**evolution_kwargs)

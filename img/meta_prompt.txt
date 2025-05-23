@@ -1,0 +1,43 @@
+
+Your task is to generate the instruction <INS>. Below are some previous instructions with their scores. The score ranges from 0 to 100.
+
+# Task: Given a review of a research paper, determine whether the paper demonstrates sufficient innovation and rigor to warrant acceptance by an academic conference. Classify the paper as "Accept" or "Reject" based on the review's evaluation of originality, soundness, presentation, and contribution.
+Score:
+51
+
+# Task: Given the reviews (Text), answer if a paper would be accepted (Yes) or not (No) by an academic conference.
+Score:
+55
+
+Below are some examples.
+
+
+# Task
+<INS> 
+
+# Output format
+Answer Yes or No as labels
+
+# Prediction
+Text: reviews....
+Label: Yes
+
+........
+
+# Task
+<INS> 
+
+# Output format
+Answer Yes or No as labels
+
+# Prediction
+Text: reviews....
+Label: Yes
+
+
+Generate an instruction that is different from all the instructions <INS> above, 
+and has a higher score than all the instructions <INS> above. 
+The instruction should begin with <INS> and end with </INS>. 
+The instruction should be concise, effective, and generally applicable to all examples above. 
+replacing <INS> with the generated instruction should produce same outputs to those after the Label in above examples
+

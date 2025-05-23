@@ -19,6 +19,8 @@ import os
 import pickle
 import re
 import sys
+from sklearn.metrics import accuracy_score, f1_score
+
 
 OPRO_ROOT_PATH = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -72,11 +74,11 @@ def gen_ins_and_score_pairs_substr(
           (instruction, score, i_step)
       )
       if num_score_buckets == np.inf:
-        score_to_show = round(score, 3)
+        score_to_show = round(score, 3) * 100
       else:
         score_to_show = _bucketize_float(score, num_score_buckets)
       old_instructions_and_scores_str += (
-          f"\ntext:\n{instruction}\nscore:\n{score_to_show}\n"
+          f"\n# Task: {instruction}\nScore:\n{score_to_show}\n\n"
       )
   if return_str_only:
     return old_instructions_and_scores_str
@@ -155,12 +157,14 @@ def gen_meta_prompt(
       "mmlu",
       "bbh",
       "gsm8k",
+      "metareview",
   }, "The lower-case dataset name must be one of mmlu, bbh, gsm8k."
   assert num_score_buckets == np.inf or isinstance(num_score_buckets, int)
 
   meta_prompt = ""
+  print_meta_prompt = ""
   if meta_prompt_type == "both_instructions_and_exemplars":
-    if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4"}:
+    if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4o-mini"}:
       if instruction_pos == "A_begin":
         meta_prompt_old_instruction_part = (
             "Your task is to generate the answer starting sentence <Start>."
@@ -170,8 +174,8 @@ def gen_meta_prompt(
       else:
         meta_prompt_old_instruction_part = (
             "Your task is to generate the instruction <INS>."
-            " Below are some previous instructions with their scores."
-            " The score ranges from 0 to 100.\n"
+            " Below are some previous instructions with their scores in ascending order."
+            " Higher scores indicate better quality.\n\n"
         )
     else:
       assert optimizer_llm_name.lower() == "text-bison"
@@ -192,8 +196,13 @@ def gen_meta_prompt(
     # add QA pairs if few_shot_qa_pairs == True
     meta_prompt_exemplar_part = ""
     if few_shot_qa_pairs:
-      if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4"}:
-        meta_prompt_exemplar_part += "Below are some problems.\n"
+      if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4o-mini"}:
+        meta_prompt_exemplar_part += (
+            "The following exemplars show how to apply your text: you replace"
+            " <INS> in each input with your instruction, then read the Text and give"
+            " a Label. A good instruction should give the corrent outputs as shown in the exemplars\n\n"
+        )
+        print_meta_prompt += meta_prompt_old_instruction_part + "\n\n" + meta_prompt_exemplar_part
       else:
         assert optimizer_llm_name.lower() == "text-bison"
         meta_prompt_exemplar_part += (
@@ -213,9 +222,9 @@ def gen_meta_prompt(
           question = data[idx]["input"]
           true_answer = data[idx]["target"]
         else:
-          assert dataset_name == "gsm8k"
-          question = data.iloc[idx, 0]
-          true_answer = data.iloc[idx, 1]
+          assert dataset_name == "metareview"
+          question = data.iloc[idx, 1]
+          true_answer = data.iloc[idx, 2]
 
         if include_qa:  # when "Q:" and "A:" are present in the prompt
           if instruction_pos == "before_Q":
@@ -225,29 +234,32 @@ def gen_meta_prompt(
           elif instruction_pos == "Q_end":
             meta_prompt_exemplar_part += f"\ninput:\nQ: {question}\n<INS>\nA:"
           else:  # instruction_pos == "A_begin"
-            if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4"}:
+            if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4o-mini"}:
               meta_prompt_exemplar_part += f"\nQ: {question}\nA: <Start>"
             else:
               assert optimizer_llm_name.lower() == "text-bison"
               meta_prompt_exemplar_part += f"\ninput:\nQ: {question}\nA: <INS>"
         else:  # when there're no "Q:" and "A:" in the prompt
           assert instruction_pos in {"Q_begin", "Q_end"}
-          if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4"}:
+          if optimizer_llm_name.lower() in {"gpt-3.5-turbo"}:
             if instruction_pos == "Q_begin":
               meta_prompt_exemplar_part += f"\nProblem:\n<INS>\n{question}\n"
             elif instruction_pos == "Q_end":
               meta_prompt_exemplar_part += f"\nProblem:\n{question}\n<INS>\n"
           else:
-            assert optimizer_llm_name.lower() == "text-bison"
+            assert optimizer_llm_name.lower() == "gpt-4o-mini"
             if instruction_pos == "Q_begin":
-              meta_prompt_exemplar_part += f"\ninput:\n<INS>\n{question}\n"
+              # meta_prompt_exemplar_part += f"\n# Task: <INS>\n# Text: {question}\n"
+              print_meta_prompt += f"# Task\n<INS> \n\n# Output format\nAnswer Yes or No as labels\n\n# Prediction\nText: reviews....\n"
+              meta_prompt_exemplar_part += f"# Task\n<INS> \n\n# Output format\nAnswer Yes or No as labels\n\n# Prediction\nText: {question}\n"
             elif instruction_pos == "Q_end":
-              meta_prompt_exemplar_part += f"\ninput:\n{question}\n<INS>\n"
+              meta_prompt_exemplar_part += f"\nText:\n{question}\n#instruction: <INS>\n"
 
-        if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4"}:
+        if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4o-mini"}:
           meta_prompt_exemplar_part += (
-              f"\nGround truth answer:\n{true_answer}\n"
+              f"Label: {"Yes" if true_answer == 1 else "No"}\n\n"
           )
+          print_meta_prompt += f"Label: {"Yes" if true_answer == 1 else "No"}\n\n"
         else:
           assert optimizer_llm_name.lower() == "text-bison"
           meta_prompt_exemplar_part += f"\noutput:\n{true_answer}\n"
@@ -268,7 +280,7 @@ def gen_meta_prompt(
     else:
       meta_prompt += meta_prompt_old_instruction_part
 
-    if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4"}:
+    if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4o-mini"}:
       if instruction_pos == "A_begin":
         meta_prompt += (
             "\n\nGenerate a starting sentence that is different from all the"
@@ -282,10 +294,10 @@ def gen_meta_prompt(
         meta_prompt += (
             "\n\nGenerate an instruction that"
             " is different from all the instructions <INS> above,"
-            " and has a higher score than all the instructions <INS> above."
             " The instruction should begin with <INS> and end with </INS>."
             " The instruction should be concise, effective,"
-            " and generally applicable to all problems above."
+            " A good instruction should give the corrent Label as shown in the exemplars"
+            " and should has a higher score than all the instructions <INS> above.\n\n"
         )
     else:
       assert optimizer_llm_name.lower() == "text-bison"
@@ -332,6 +344,11 @@ def gen_meta_prompt(
           f"\n\nPrecision: {score_to_show} <TEXT>{instruction}</TEXT>"
       )
     meta_prompt += meta_instruction + old_instructions_and_scores_str
+  
+  print(f"\nmeta_prompt=================================================================================")
+  idx = meta_prompt.find("\n\nGenerate an instruction that is different from all the instructions <INS> above,")
+  print(f"{print_meta_prompt + meta_prompt[idx:]}\n")
+  print(f"meta_prompt=================================================================================")
   return meta_prompt
 
 
@@ -405,6 +422,7 @@ def run_evolution(**kwargs):
       "mmlu",
       "bbh",
       "gsm8k",
+      "metareview",
   }, "The lower-case dataset name must be one of mmlu, bbh, gsm8k."
   assert optimizer_llm_temperature_schedule in {
       "constant",
@@ -478,7 +496,7 @@ def run_evolution(**kwargs):
   if dataset_name == "mmlu":
     is_multiple_choice = True
     is_multiple_choice_eval = True
-  elif dataset_name in {"gsm8k"}:
+  elif dataset_name in {"metareview"}:
     is_multiple_choice = False
     is_multiple_choice_eval = False
   else:
@@ -520,7 +538,7 @@ def run_evolution(**kwargs):
   for instruction in initial_instructions:
     print(f"""computing the score of "{instruction}" by prompting""")
 
-    detailed_results_df = eval_utils.evaluate_single_instruction(
+    detailed_results_df = eval_utils.evaluate_single_instruction (
         data=raw_data,
         instruction=instruction,
         eval_index_all=train_index,
@@ -536,28 +554,31 @@ def run_evolution(**kwargs):
         prediction_treat_as_number=prediction_treat_as_number,
         prediction_treat_as_bool=prediction_treat_as_bool,
         prediction_num_decimals=0,
-        max_retry=120,
+        max_retry=8,
         sleep_time=60,
         verbose=verbose,
     )
 
     detailed_results_df_by_instruction_dict[instruction] = detailed_results_df
-    scores = detailed_results_df["accuracy"]
-    average_score = np.average(scores)
-    print(f"instruction: {instruction}, score: {average_score}")
+    # accuracy or F1 score ??
+    # scores = detailed_results_df["accuracy"]
+    # average_score = np.average(scores)
+    print(f"\nF1_score: {detailed_results_df['f1_score'].iloc[0]}\n")
+    
     filename = eval_utils.instruction_to_filename(instruction)
     file_path = os.path.join(result_by_instruction_folder, f"{filename}.csv")
     detailed_results_df.to_csv(file_path, index=True, header=True)
     print(f"""saving results of "{instruction}" to {file_path}""")
-    old_instructions_and_scores.append((instruction, average_score, -1))
-    old_instructions_and_scores_raw.append((instruction, average_score, -1))
-    instruction_score_dict[instruction] = average_score
+    # old_instructions_and_scores.append((instruction, average_score, -1))
+    old_instructions_and_scores.append((instruction, detailed_results_df["f1_score"].iloc[0], -1))
+    old_instructions_and_scores_raw.append((instruction, detailed_results_df["f1_score"].iloc[0], -1))
+    instruction_score_dict[instruction] = detailed_results_df["f1_score"].iloc[0]
 
     # increment the counter on wrong questions
     wrong_question_indices_set = set(
         list(
             detailed_results_df.iloc[
-                np.where(detailed_results_df.accuracy == 0.0)[0], :
+              np.where(detailed_results_df.accuracy == 0.0)[0], :
             ].index
         )
     )
@@ -688,6 +709,8 @@ def run_evolution(**kwargs):
         ).tolist()
 
       few_shot_index_list_by_step_dict[i_step] = few_shot_index_list
+      if verbose:
+        print(f"few shot index list length: {len(few_shot_index_list)}")
 
       meta_prompt = gen_meta_prompt(
           old_instructions_and_scores=old_instructions_and_scores,
@@ -722,50 +745,60 @@ def run_evolution(**kwargs):
           dataset_name=dataset_name,
           task_name=task_name,
       )
-    print(f"\nmeta_prompt: \n\n{meta_prompt}\n")
+    # print(f"\nmeta_prompt: \n\n{meta_prompt}\n")
+
     meta_prompts.append((meta_prompt, i_step))
     remaining_num_instructions_to_generate = (
         num_generated_instructions_in_each_step
     )
+
     generated_instructions_raw = []
     while remaining_num_instructions_to_generate > 0:
       optimizer_llm_input_text = meta_prompt
       # generate instructions
-      print(f"current temperature: {optimizer_llm_temperature_curr}")
       raw_outputs = call_optimizer_server_func(
           optimizer_llm_input_text,
           temperature=optimizer_llm_temperature_curr,
       )
+      # print(f"raw_outputs: {raw_outputs}")
 
       # Extract the generated instructions from the optimizer LLM output. Only
       # keep some samples if the desired number of remaining instructions
       # is smaller than the total number of decodes in this step.
       if meta_prompt_type == "both_instructions_and_exemplars":
-        raw_outputs = raw_outputs[:remaining_num_instructions_to_generate]
-        if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4"}:
-          if instruction_pos == "A_begin":
-            start_string = "<Start>"
-            end_string = "</Start>"
-          else:
-            start_string = "<INS>"
-            end_string = "</INS>"
-          for raw_output in raw_outputs:
-            if start_string not in raw_output:
-              start_index = 0
-            else:
-              start_index = raw_output.index(start_string) + len(start_string)
-            if end_string not in raw_output:
-              end_index = len(raw_output)
-            else:
-              end_index = raw_output.index(end_string)
-            new_inst = raw_output[start_index:end_index].strip()
-            generated_instructions_raw.append(new_inst)
-        else:
-          assert optimizer_llm_name.lower() == "text-bison"
-          generated_instructions_raw += [
-              extract_string_in_square_brackets(string)
-              for string in raw_outputs
-          ]
+        start_string = "<INS>"
+        end_string = "</INS>"
+        if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4o-mini"}:
+          start_index = raw_outputs.index(start_string) + len(start_string)
+          end_index = raw_outputs.index(end_string)
+          new_inst = raw_outputs[start_index:end_index].strip()
+          generated_instructions_raw.append(new_inst)
+        
+        # raw_outputs = raw_outputs[:remaining_num_instructions_to_generate]
+        # if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4o-mini"}:
+        #   if instruction_pos == "A_begin":
+        #     start_string = "<Start>"
+        #     end_string = "</Start>"
+        #   else:
+        #     start_string = "<INS>"
+        #     end_string = "</INS>"
+        #   for raw_output in raw_outputs:
+        #     if start_string not in raw_output:
+        #       start_index = 0
+        #     else:
+        #       start_index = raw_output.index(start_string) + len(start_string)
+        #     if end_string not in raw_output:
+        #       end_index = len(raw_output)
+        #     else:
+        #       end_index = raw_output.index(end_string)
+        #     new_inst = raw_output[start_index:end_index].strip()
+        #     generated_instructions_raw.append(new_inst)
+        # else:
+        #   assert optimizer_llm_name.lower() == "text-bison"
+        #   generated_instructions_raw += [
+        #       extract_string_in_square_brackets(string)
+        #       for string in raw_outputs
+        #   ]
 
         remaining_num_instructions_to_generate -= optimizer_llm_dict[
             "batch_size"
@@ -802,7 +835,7 @@ def run_evolution(**kwargs):
 
     to_evaluate_instructions = []
     for instruction in generated_instructions:
-      if len(instruction) > 500:
+      if len(instruction) > 8000:
         print(f"Step {i_step}, instruction: {instruction}, too long, skipped")
         continue
       if dataset_name == "gsm8k" and any(
@@ -933,7 +966,8 @@ def run_evolution(**kwargs):
         )
         print(f"""reading previously saved "{instruction}" information""")
 
-      scores = detailed_results_df["accuracy"]
+      # scores = detailed_results_df["accuracy"]
+      scores = detailed_results_df["f1_score"]
       average_score = np.average(scores)
       print(
           f"Step {i_step}, instruction: {instruction}, score: {average_score}"
@@ -977,6 +1011,8 @@ def run_evolution(**kwargs):
         # if the instruction wasn't skipped in any step
         if instruction in instruction_score_dict:
           if instruction not in instruction_eval_score_dict:
+            if verbose:
+              print(f"\nevaluating on the validation set ============================================= \n")
             detailed_results_df = eval_utils.evaluate_single_instruction(
                 data=raw_data,
                 instruction=instruction,
@@ -997,7 +1033,7 @@ def run_evolution(**kwargs):
                 sleep_time=180,
                 verbose=verbose,
             )
-            eval_score = np.average(detailed_results_df["accuracy"])
+            eval_score = detailed_results_df["f1_score"].iloc[0]
             eval_detailed_results_df_dict[instruction] = detailed_results_df
             instruction_eval_score_dict[instruction] = eval_score
           else:
@@ -1030,6 +1066,49 @@ def run_evolution(**kwargs):
     results_dict["eval_detailed_results_df_dict"] = (
         eval_detailed_results_df_dict
     )
+    # Store all kwargs under 'args' key
+    results_dict["args"] = {
+        "num_search_steps": num_search_steps,
+        "old_instruction_score_threshold": old_instruction_score_threshold,
+        "scorer_llm_dict": scorer_llm_dict,
+        "optimizer_llm_dict": optimizer_llm_dict,
+        "extract_final_answer_by_prompting_again": extract_final_answer_by_prompting_again,
+        "include_qa": include_qa,
+        "evaluate_in_parallel": evaluate_in_parallel,
+        "tasks_all": tasks_all,
+        "train_ratio": train_ratio,
+        "eval_ratio": eval_ratio,
+        "test_ratio": test_ratio,
+        "train_index": train_index,
+        "eval_index": eval_index,
+        "dataset_name": dataset_name,
+        "task_name": task_name,
+        "num_examples": num_examples,
+        "root_data_folder_path": root_data_folder_path,
+        "optimizer_llm_temperature": optimizer_llm_temperature,
+        "optimizer_llm_temperature_schedule": optimizer_llm_temperature_schedule,
+        "optimizer_llm_temperature_end": optimizer_llm_temperature_end,
+        "initial_instructions": initial_instructions,
+        "multiple_choice_tasks": multiple_choice_tasks,
+        "raw_data": raw_data,
+        "call_scorer_server_func": call_scorer_server_func,
+        "call_optimizer_server_func": call_optimizer_server_func,
+        "instruction_pos": instruction_pos,
+        "prediction_treat_as_number": prediction_treat_as_number,
+        "prediction_treat_as_bool": prediction_treat_as_bool,
+        "result_by_instruction_folder": result_by_instruction_folder,
+        "few_shot_qa_pairs": few_shot_qa_pairs,
+        "num_score_buckets": num_score_buckets,
+        "max_num_instructions": max_num_instructions,
+        "meta_prompt_type": meta_prompt_type,
+        "meta_prompt_instructions_before_exemplars": meta_prompt_instructions_before_exemplars,
+        "few_shot_selection_criteria": few_shot_selection_criteria,
+        "optimizer_llm_name": optimizer_llm_name,
+        "num_generated_instructions_in_each_step": num_generated_instructions_in_each_step,
+        "evaluate_generated_ins_on_few_shot": evaluate_generated_ins_on_few_shot,
+        "num_few_shot_questions_for_instruction_refinement": num_few_shot_questions_for_instruction_refinement,
+        "evaluate_old_ins_on_few_shot": evaluate_old_ins_on_few_shot,
+    }
     with open(os.path.join(save_folder, "results_dict.pkl"), "wb") as fp:
       pickle.dump(results_dict, fp)
     print(f"\nsaved all results to\n{save_folder}")

@@ -411,7 +411,7 @@ def main(_):
         json.dump(results_dict, f, indent=4)
       if found_optimal:
         print(
-            f"Repetition {i_rep+1}, optimal found at Step {i_step+1}, saving"
+            f"Repetition {i_rep+1}, optimal found at Step {i_step + 1}, saving"
             f" final results to\n{save_folder}"
         )
         num_convergence_steps.append(i_step + 1)

@@ -14,91 +14,153 @@
 """The utility functions for prompting GPT and Google Cloud models."""
 
 import time
+import requests
 import google.generativeai as palm
 import openai
+import os
+from dotenv import load_dotenv
+import opro.utils_mr
 
+load_dotenv()  # Load environment variables from .env file
 
-def call_openai_server_single_prompt(
-    prompt, model="gpt-3.5-turbo", max_decode_steps=20, temperature=0.8
-):
-  """The function to call OpenAI server with an input string."""
-  try:
-    completion = openai.ChatCompletion.create(
-        model=model,
-        temperature=temperature,
-        max_tokens=max_decode_steps,
-        messages=[
-            {"role": "user", "content": prompt},
-        ],
-    )
-    return completion.choices[0].message.content
+def call_openai_server_single_prompt(prompt, model, max_decode_steps=1024, temperature=0.0, n=1, top_p=1, stop=None,
+                  presence_penalty=0, frequency_penalty=0, logit_bias={}, timeout=10):
+    messages = [{"role": "user", "content": prompt}]
+    payload = {
+        "messages": messages,
+        "model": model,
+        "temperature": temperature,
+        "n": n,
+        "top_p": top_p,
+        "stop": stop,
+        "max_tokens": max_decode_steps,
+        "presence_penalty": presence_penalty,
+        "frequency_penalty": frequency_penalty,
+        "logit_bias": logit_bias
+    } 
+    max_retries = 6
+    base_delay = 1
+    
+    for retry in range(max_retries):
+        try:
+            r = requests.post('https://api.openai.com/v1/chat/completions',
+                headers = {
+                    "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
+                    "Content-Type": "application/json"
+                },
+                json = payload,
+                timeout=timeout
+            )
+            
+            if r.status_code == 200:
+                r = r.json()
+                print(f"r: {r['choices'][0]['message']['content']}")
+                return r['choices'][0]['message']['content']
+            elif r.status_code == 429:  # Rate limit error
+                retry_after = int(r.headers.get('Retry-After', base_delay * (2 ** retry)))
+                print(f"Rate limit hit. Waiting {retry_after} seconds...")
+                time.sleep(retry_after)
+            else:
+                print(f"API Error - Status Code: {r.status_code}")
+                if retry < max_retries - 1:
+                    wait_time = base_delay * (2 ** retry)
+                    time.sleep(wait_time)
+                
+        except requests.exceptions.RequestException:
+            if retry < max_retries - 1:
+                wait_time = base_delay * (2 ** retry)
+                time.sleep(wait_time)
+    
+    raise Exception(f"Failed to get response after {max_retries} retries")
 
-  except openai.error.Timeout as e:
-    retry_time = e.retry_after if hasattr(e, "retry_after") else 30
-    print(f"Timeout error occurred. Retrying in {retry_time} seconds...")
-    time.sleep(retry_time)
-    return call_openai_server_single_prompt(
-        prompt, max_decode_steps=max_decode_steps, temperature=temperature
-    )
+# def call_openai_server_single_prompt(
+#     prompt, model="gpt-4o-mini", max_decode_steps=20, temperature=0.8
+# ):
+#   """The function to call OpenAI server with an input string."""
+#   try:
+#     completion = openai.ChatCompletion.create(
+#         model=model,
+#         temperature=temperature,
+#         max_tokens=max_decode_steps,
+#         messages=[
+#             {"role": "user", "content": prompt},
+#         ],
+#     )
+#     return completion.choices[0].message.content
 
-  except openai.error.RateLimitError as e:
-    retry_time = e.retry_after if hasattr(e, "retry_after") else 30
-    print(f"Rate limit exceeded. Retrying in {retry_time} seconds...")
-    time.sleep(retry_time)
-    return call_openai_server_single_prompt(
-        prompt, max_decode_steps=max_decode_steps, temperature=temperature
-    )
+#   except openai.error.Timeout as e:
+#     retry_time = e.retry_after if hasattr(e, "retry_after") else 30
+#     print(f"Timeout error occurred. Retrying in {retry_time} seconds...")
+#     time.sleep(retry_time)
+#     return call_openai_server_single_prompt(
+#         prompt, max_decode_steps=max_decode_steps, temperature=temperature
+#     )
 
-  except openai.error.APIError as e:
-    retry_time = e.retry_after if hasattr(e, "retry_after") else 30
-    print(f"API error occurred. Retrying in {retry_time} seconds...")
-    time.sleep(retry_time)
-    return call_openai_server_single_prompt(
-        prompt, max_decode_steps=max_decode_steps, temperature=temperature
-    )
+#   except openai.error.RateLimitError as e:
+#     retry_time = e.retry_after if hasattr(e, "retry_after") else 30
+#     print(f"Rate limit exceeded. Retrying in {retry_time} seconds...")
+#     time.sleep(retry_time)
+#     return call_openai_server_single_prompt(
+#         prompt, max_decode_steps=max_decode_steps, temperature=temperature
+#     )
 
-  except openai.error.APIConnectionError as e:
-    retry_time = e.retry_after if hasattr(e, "retry_after") else 30
-    print(f"API connection error occurred. Retrying in {retry_time} seconds...")
-    time.sleep(retry_time)
-    return call_openai_server_single_prompt(
-        prompt, max_decode_steps=max_decode_steps, temperature=temperature
-    )
+#   except openai.error.APIError as e:
+#     retry_time = e.retry_after if hasattr(e, "retry_after") else 30
+#     print(f"API error occurred. Retrying in {retry_time} seconds...")
+#     time.sleep(retry_time)
+#     return call_openai_server_single_prompt(
+#         prompt, max_decode_steps=max_decode_steps, temperature=temperature
+#     )
 
-  except openai.error.ServiceUnavailableError as e:
-    retry_time = e.retry_after if hasattr(e, "retry_after") else 30
-    print(f"Service unavailable. Retrying in {retry_time} seconds...")
-    time.sleep(retry_time)
-    return call_openai_server_single_prompt(
-        prompt, max_decode_steps=max_decode_steps, temperature=temperature
-    )
+#   except openai.error.APIConnectionError as e:
+#     retry_time = e.retry_after if hasattr(e, "retry_after") else 30
+#     print(f"API connection error occurred. Retrying in {retry_time} seconds...")
+#     time.sleep(retry_time)
+#     return call_openai_server_single_prompt(
+#         prompt, max_decode_steps=max_decode_steps, temperature=temperature
+#     )
 
-  except OSError as e:
-    retry_time = 5  # Adjust the retry time as needed
-    print(
-        f"Connection error occurred: {e}. Retrying in {retry_time} seconds..."
-    )
-    time.sleep(retry_time)
-    return call_openai_server_single_prompt(
-        prompt, max_decode_steps=max_decode_steps, temperature=temperature
-    )
+#   except openai.error.ServiceUnavailableError as e:
+#     retry_time = e.retry_after if hasattr(e, "retry_after") else 30
+#     print(f"Service unavailable. Retrying in {retry_time} seconds...")
+#     time.sleep(retry_time)
+#     return call_openai_server_single_prompt(
+#         prompt, max_decode_steps=max_decode_steps, temperature=temperature
+#     )
+
+#   except OSError as e:
+#     retry_time = 5  # Adjust the retry time as needed
+#     print(
+#         f"Connection error occurred: {e}. Retrying in {retry_time} seconds..."
+#     )
+#     time.sleep(retry_time)
+#     return call_openai_server_single_prompt(
+#         prompt, max_decode_steps=max_decode_steps, temperature=temperature
+#     )
 
 
 def call_openai_server_func(
-    inputs, model="gpt-3.5-turbo", max_decode_steps=20, temperature=0.8
+    inputs, model="gpt-4o-mini", max_decode_steps=1024, temperature=0.8
 ):
   """The function to call OpenAI server with a list of input strings."""
+  outputs = []
   if isinstance(inputs, str):
     inputs = [inputs]
-  outputs = []
-  for input_str in inputs:
-    output = call_openai_server_single_prompt(
-        input_str,
-        model=model,
-        max_decode_steps=max_decode_steps,
-        temperature=temperature,
+ 
+  if (len(inputs) > 1):
+    outputs = opro.utils_mr.chatgpt_batch(
+      inputs,
+      temperature=temperature,
+      model=model,
+      max_tokens=max_decode_steps,
     )
-    outputs.append(output)
+  else:
+    outputs = call_openai_server_single_prompt(
+      inputs[0],
+      model=model,
+      max_decode_steps=max_decode_steps,
+      temperature=temperature,
+    )
   return outputs
 
 

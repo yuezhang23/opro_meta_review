@@ -1,0 +1,1288 @@
+uS9RZH6K65;"REVIEW 
+Summary:
+This paper proposes a denoising framework to alleviate the influence of noisy text descriptions on open-vocabulary action recognition in real scenarios. A comprehensive analysis of the noise rate/type in text description is provided and the robustness evaluation of existing OVAR methods is conducted. A DENOISER framework with generative-discriminative optimization is proposed. The experiments demonstrate the effectiveness of the framework.
+
+Soundness:
+3: good
+
+Presentation:
+2: fair
+
+Contribution:
+2: fair
+
+Strengths:
+- The robustness to noisy text descriptions/instructions in real-world OVAR applications is an interesting and meaningful problem.
+- The evaluation of the robustness of existing OVAR methods when facing the noise text description input is valuable to the community.
+- The motivation is clear and the overall framework is technically sound.
+
+Weaknesses:
+- About the experiments,
+    - The reviewer thinks that the most convincing results are the Top-1 Acc of existing OVAR models under the Real noise type. However, in Table 1, the proposed model does not demonstrate much superiority compared to GPT3.5's simple correction. The reviewer worries about the research significance of this problem. Will this problem be well resolved when using more powerful GPT4/GPT4o with some engineering prompt designs?
+    - In Table 2, I would like to see the performance of other correction methods (e.g., GPT3.5/4/4o) for a more comprehensive comparison.
+    - Since this work focuses on the noise text description problem in OVAR, it is necessary to demonstrate the results of those CLIP-based methods without any additional textual adaptation (e.g., the vanilla CLIP).
+
+
+- About the method,
+    - The reviewer thinks that the overall model design is reasonable and clear. However, the method part introduces too many symbols which makes the paper very hard to follow. It is unnecessary to over-decorate the technical contributions.
+
+- Minor issue,
+    - The authors seem to have a misunderstanding about the OVAR setting (Line 113). In OVAR, the model is evaluated on both base-classes and novel-classes during testing. In this case, all action classes from the UCF/HMDB datasets can be used for testing when the model is trained on K400, as there are many overlap classes between K400 and UCF/HMDB.
+
+Limitations:
+The limitations are discussed and there is no potential negative societal impact.
+
+Rating:
+5: marginally below the acceptance threshold
+
+Confidence:
+4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+
+REVIEW 
+Summary:
+This paper tackles the challenge of noisy text descriptions in Open-Vocabulary Action Recognition (OVAR), a task that associates videos with textual labels in computer vision. The authors identify the issue of text noise, such as typos and misspellings, which can hinder the performance of OVAR systems. To address this, they propose a novel framework named DENOISER, which consists of generative and discriminative components. The generative part corrects the noisy text, while the discriminative part matches visual samples with the cleaned text. The framework is optimized through alternating iterations between the two components, leading to improved recognition accuracy and noise reduction. Experiments show that DENOISER outperforms existing methods, confirming its effectiveness in enhancing OVAR robustness against textual noise.
+
+Soundness:
+2: fair
+
+Presentation:
+3: good
+
+Contribution:
+2: fair
+
+Strengths:
+- This paper aims to study a new research topic, i.e., achieving robust open-vocabulary recognition performance with noisy texts. This direction has not been investigated before, which seems to be applicable in real-world applications.
+
+- The proposed intra-modal and inter-modal methods are intuitive and demonstrated effective in the experiments. 
+
+- The experiments show that the proposed method is effective with different network architectures (XCLIP and ActionCLIP), which verifies that the method can be widely used.
+
+Weaknesses:
+- The baseline models are outdated and not tailored for OVAR. The authors failed to reference recent OVAR papers such as OpenVCLIP[1] (ICML 2023), FROSTER (ICLR 2024), and OTI (ACM MM 2023).
+
+- In Table 1, it is evident that the proposed method outperforms GPT-3.5. Additionally, the authors present examples in Table 4 to demonstrate the superiority of the proposed method over GPT-3.5. However, upon personal experimentation with all the examples from Table 4 using the provided prompt from the paper (lines 243-245), I observed that the GPT-3.5 model successfully rectified all issues, including challenging cases where the proposed method fell short. As a result, I remain unconvinced by the findings.
+
+This is the prompt given to GPT-3.5 model, and I hope other reviewers can also try it on their own:
+
+The following words may contain spelling errors by deleting, inserting, and substituting letters. You are a corrector of spelling errors. Give only the answer without explication. What is the correct spelling of the action of  “cutting i aitnchen”.
+
+
+[1] Open-VCLIP: Transforming CLIP to an Open-vocabulary Video Model via Interpolated Weight Optimization.
+
+[2] FROSTER: Frozen CLIP Is A Strong Teacher for Open-Vocabulary Action Recognition.
+
+[3] Orthogonal Temporal Interpolation for Zero-Shot Video Recognition.
+
+Limitations:
+Yes, they addressed the limitations.
+
+Rating:
+4: Borderline reject: Technically solid paper where reasons to reject, e.g., limited evaluation, outweigh reasons to accept, e.g., good evaluation. Please use sparingly.
+
+Confidence:
+5: You are absolutely certain about your assessment. You are very familiar with the related work and checked the math/other details carefully.
+
+REVIEW 
+Summary:
+This paper deals with the problem of Open-Vocabulary Action Recogniton (OVAR). Specifically, it focuses on the issue that the action labels provided by users may contain some noise such as misspellings and typos. The authors find that the existing OVAR methods' performance drops significantly in this situation.  Based on this analysis, they propose the DENOISER framework to reduce the noise in the action vocabulary.
+
+Soundness:
+3: good
+
+Presentation:
+3: good
+
+Contribution:
+2: fair
+
+Strengths:
+1. The paper is generally well-written and easy to follow. 
+2. The framework is well presented and explained.
+3. The experiments show the effectiveness of the denoising process.
+
+Weaknesses:
+1. This paper actually focuses on text denoising and does not involve any specific action recognition technology. The author just chose the field of OVAR to verify the effectiveness of the proposed text-denoising method. The title is somewhat misleading. I think the author should regard text-denoising as the core contribution of the article instead of the so-called ""robust OVAR""
+2. The article focuses on too few and too simple types of text noise, including only single-letter deletions, insertions, or substitutions. These kinds of errors can be easily discovered and corrected through the editor's automatic spell check when users create a class vocabulary. This makes the method in this paper very limited in practical significance.
+3. , The proposed method, although a somewhat complex theoretical derivation is carried out in the article, is very simple and intuitive: that is, for each word in the class label, selecting the one that can give the highest score to the sample classified into this category among several words that are closest to the word.  There is limited novelty or technical contribution.
+
+Limitations:
+The author states two limitations of the work in the paper.
+
+Rating:
+3: reject, not good enough
+
+Confidence:
+5: You are absolutely certain about your assessment. You are very familiar with the related work and checked the math/other details carefully.
+
+REVIEW 
+Summary:
+This paper addresses the challenge of noisy text descriptions in  Open-Vocabulary Action Recognition. It introduces the DENOISER  framework, which combines generative and discriminative approaches to denoise the text descriptions and improve the accuracy of visual sample  classification. The paper provides empirical evidence of the framework's  robustness and conducts detailed analyses of its components.
+
+Soundness:
+2: fair
+
+Presentation:
+3: good
+
+Contribution:
+2: fair
+
+Strengths:
+1. The paper is well-written and the content is easy to understand. 
+2. The motivation presented by the authors is clear, the label noise problem does exist in video datasets.
+3. The authors show the types of noise and their percentage, in addition, the authors verify the validity of the proposed method through comparative experiments.
+
+Weaknesses:
+1. As the authors state in the limitations section, textual description noise does exist, but it can be corrected with an offline language model, what are the advantages of the authors' proposed approach?
+2. I would assume that the text noise problem presented in this paper is even worse on large video datasets collected by semi-automatically labeled networks, e.g., Panda70M, howto100M, and InternVid. I suggest that the authors might consider validating their ideas on these datasets.
+
+Limitations:
+The authors have provided a limitations analysis in their paper and I have suggested some limitations in the Questions section.
+
+Rating:
+4: Borderline reject: Technically solid paper where reasons to reject, e.g., limited evaluation, outweigh reasons to accept, e.g., good evaluation. Please use sparingly.
+
+Confidence:
+3: You are fairly confident in your assessment. It is possible that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked.
+
+";0
+6Wm4202Wvc;"REVIEW 
+Summary:
+The paper revisited the problem of label leakage in split learning in the context of fine-tuning large models with parameter-efficient training. Based on modern use cases, they proposed two privacy-preserving protections for gradients and activations during split learning. The proposed methods are evaluated on several large models including Llama2-7B, fine-tuned using LoRA and full model fine-tuning.
+
+Soundness:
+3: good
+
+Presentation:
+3: good
+
+Contribution:
+3: good
+
+Strengths:
+1. The paper moved forward a step on the urgent need to privacy-preserving split learning over large models and fine-tuning with LoRA.
+2. The writing is generally good despite some minor issues. The flow of ideas is clear.
+3. The proposed method is evaluated over different pre-trained large models, conforming to current real-world use cases of LLMs.
+
+Weaknesses:
+1. There exist several related works discussing the attacks and defense regarding the label leakage in split learning. The authors may need to compare the differences between the proposed methods and previous literature. The evaluation part lacks the comparison to existing privacy-preserving solutions over label leakage and some trivial solutions such as directly applying differential privacy, which is easy to implement.
+2. In modern use cases of API fine-tuning, apart from the applications of classification, text generation with LLMs and image generation with multimodal models and diffusion are more common cases. And it is very critical to protect labels in these applications. For example, labels in text generation can contain answers to private questions in the private dataset. However, the leakage study and proposed privacy-preserving methods do not apply to these applications.
+3. There are some minor writing issues that could be improved. For example, content introducing API fine-tuning and potential privacy concerns can be shortened in the introduction. The paragraph from line 53 to 58 can be reorganized so that it won't leave '[18]' for a whole line. Same thing for line 209. On line 28, write the full name of LoRA before using acronym. The authors are suggested to talk about split learning and no need to raise extra efforts for readers to understand what vertical federated learning is.
+
+[1] Wan, Xinwei, Jiankai Sun, Shengjie Wang, Lei Chen, Zhenzhe Zheng, Fan Wu, and Guihai Chen. ""PSLF: Defending Against Label Leakage in Split Learning."" In Proceedings of the 32nd ACM International Conference on Information and Knowledge Management, pp. 2492-2501. 2023.   
+[2] Kariyappa, Sanjay, and Moinuddin K. Qureshi. ""ExPLoit: Extracting private labels in split learning."" In 2023 IEEE conference on secure and trustworthy machine learning (SaTML), pp. 165-175. IEEE, 2023.     
+[3] Erdoğan, Ege, Alptekin Küpçü, and A. Ercüment Çiçek. ""Unsplit: Data-oblivious model inversion, model stealing, and label inference attacks against split learning."" In Proceedings of the 21st Workshop on Privacy in the Electronic Society, pp. 115-124. 2022.      
+[4] Xu, Hengyuan, Liyao Xiang, Hangyu Ye, Dixi Yao, Pengzhi Chu, and Baochun Li. ""Permutation Equivariance of Transformers and Its Applications."" In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp. 5987-5996. 2024.
+
+Limitations:
+Discussed in the last section.
+
+Rating:
+6: marginally above the acceptance threshold
+
+Confidence:
+5: You are absolutely certain about your assessment. You are very familiar with the related work and checked the math/other details carefully.
+
+REVIEW 
+Summary:
+This study addresses the privacy concerns associated with the fine-tuning of Large Language Models (LLMs), focusing on SplitNN. It explores how gradients and activations can leak data, potentially allowing attackers to reconstruct original data sets. In experiments, the proposed method reduces label leakage while maintaining minimal utility loss.
+
+Soundness:
+2: fair
+
+Presentation:
+3: good
+
+Contribution:
+2: fair
+
+Strengths:
+S1. The manuscript highlights significant privacy issues in LLM fine-tuning, specifically the potential for data leakage through gradients and activations in SplitNN.
+
+S2. Experimental results show that the proposed method significantly mitigates label leakage with minimal impact on utility.
+
+Weaknesses:
+W1. The claim that backpropagation is ""conditionally linear"" is not sufficiently rigorous. The manuscript suggests that $\text{backprop}(x, \theta, g_h+z)+\text{backprop}(x, \theta, g_h−z) = \text{backprop}(x, \theta, g_h)$ under the assumption that $\theta$ is constant. However, $\theta$ updates during each backpropagation, invalidating this assumption. Moreover, swapping the order of $\text{backprop}(x, \theta, g_h+z)$ and $\text{backprop}(x, \theta, g_h−z)$ could lead to different outcomes. Formal proof and a clearer statement of assumptions are needed to substantiate this claim.
+
+W2. Section 3.4 describes a method to protect activations that resembles secure multi-party computation [1], lacking novelty. Its effectiveness is also questionable when only one adapter is present.
+
+W3. The proposed protection mainly focuses on labels. In practice, data such as personal identifiers may pose a greater risk than labels. For example, knowing (a) Alice's salary (label) is included in the database is considered a more serious leakage than knowing (b) someone earns a salary of 3.2k. The manuscript should explore if the proposed method can also protect other sensitive features.
+
+**References**
+
+[1] Du, Wenliang, and Mikhail J. Atallah. ""Secure multi-party computation problems and their applications: a review and open problems."" Proceedings of the 2001 workshop on New security paradigms. 2001.
+
+Limitations:
+There elaboration on limitations is insufficient.
+
+Rating:
+5: marginally below the acceptance threshold
+
+Confidence:
+3: You are fairly confident in your assessment. It is possible that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked.
+
+REVIEW 
+Summary:
+This paper addresses privacy leakage during API-based Parameter Efficient Fine-Tuning (PEFT). Their designed P3EFT is a multi-party split learning algorithm that leverages PEFT adjustments to uphold privacy with minimal performance overhead. Their method proves competitive in both multi-party and two-party setups while achieving higher accuracy.
+
+Soundness:
+3: good
+
+Presentation:
+3: good
+
+Contribution:
+2: fair
+
+Strengths:
+Researching API-based fine-tuning for large models is an intriguing topic, especially considering that many clients face challenges loading such large models due to size and computational constraints. In this scenario, privacy concerns regarding client data become paramount. This paper aims to mitigate potential privacy leakage by obfuscating gradients and parameters communicated during transmissions.
+
+Weaknesses:
+Their approach shows limited privacy improvement compared to the scenario  Without LoRAs, as indicated in Tables 1, 2, and 3, thereby restricting the overall benefits.
+
+Limitations:
+The paper addresses limitations.
+
+Rating:
+5: marginally below the acceptance threshold
+
+Confidence:
+2: You are willing to defend your assessment, but it is quite likely that you did not understand the central parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked.
+
+REVIEW 
+Summary:
+This paper proposes an algorithm to preserve the label privacy while achieve good accuracy in the split learning regime. The algorithm is used in parameter-efficient fine-tuning and empirically tested on some language models.
+
+Soundness:
+3: good
+
+Presentation:
+3: good
+
+Contribution:
+2: fair
+
+Strengths:
+The paper clearly presents its motivation and contribution. The modification on the back-propagation is reasonable and empirically effective across three models and different attacks that are tested
+
+Weaknesses:
+The main concern is the scalability of this method. For one iteration, the number of backpropagation is m (at least 2), which is too slow even for PEFT. The computation cost of PEFT is 2/3 of full training so if m=2, the total cost of this method is 4/3 of full training.
+
+Looking at the code, there are 7 hyperparameters introduced by this method, which may be hard to use in practice. I would suggest the authors fix some hyperparamters that the algorithm is robust to, to reduce the number of tunable hyperparameters.
+
+Also the experiment results on SST2 show a severe leakage around 10% compared to without LoRA (even though this is relatively weaker than other methods).
+
+Limitations:
+As in its current presentation, the method is limited to language models, split learning (two parties), and label privacy. The empirical evidence is limited to text classification (specifically, this method does not apply to natural language generation where LLAMA is originally trained for) and LoRA. Each limitation can be relaxed, e.g. extending to vision models, data reconstruction, additional PEFT, etc.
+
+Rating:
+5: marginally below the acceptance threshold
+
+Confidence:
+3: You are fairly confident in your assessment. It is possible that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked.
+
+";0
+qL4nN6Ew7U;"REVIEW 
+Summary:
+The paper proposes Fantasy, a T2I model based fully on transformers (except for the VQGAN for the latents encoding and decoder):
+* A __fine-tuned LLM__ (based on Phi-2) for the text encoding
+* A image generator based on the MIM (Masked Image Modelling) approach
+
+The training happens in two stages, a generic stage for aligning the generator the the frozen Phi-2 features, followed by a fine-tuning stage where the Phi-2 encoder is fine-tuned alongside the MIM transformer.
+
+The results on human evaluations are convincing, putting Fantasy alongside models that require larger computational resources, while the FID results are less convincing (due to the image being smooth according to the authors).
+
+Soundness:
+3: good
+
+Presentation:
+3: good
+
+Contribution:
+2: fair
+
+Strengths:
+Novelty:
+* The LLM is __fine-tuned__ but only in the second stage of training, this approach is new and makes sense
+
+Accessiblity:
+* The 2 stage pre-training is already standard practice
+* The Phi-2 model is available, it is likely that this approach works for other available models (Phi-3? It could be interesting to test)
+* The model size allows the model to be trained in a reasonable time
+
+Weaknesses:
+Performance:
+* The FID scores are not competitive and the authors describe why: the image are smooth => it seems that the human evaluations still rank Fantasy at the top on visual appeal, but it might be that if the question was ""visual realism"" they might prefer a different model
+* Results are available for 256px, and a 600M parameters MIM generator, there is no proof that this method scales (we know that diffusion models based on UNet have trouble scaling for instance)
+
+Limitations:
+n/a
+
+Rating:
+7: Accept: Technically solid paper, with high impact on at least one sub-area, or moderate-to-high impact on more than one areas, with good-to-excellent evaluation, resources, reproducibility, and no unaddressed ethical considerations.
+
+Confidence:
+2: You are willing to defend your assessment, but it is quite likely that you did not understand the central parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked.
+
+REVIEW 
+Summary:
+This paper proposes an efficient text-to-image generation model that integrates LLM and MIM. It demonstrates that MIM can achieve comparable performance. Unlike commonly used text encoders like CLIP and T5, this study introduces an efficient decoder-only LLM, phi-3, achieving better semantic understanding. The effectiveness of the method is validated through a newly proposed two-stage training approach and sufficient experiments.
+
+Soundness:
+3: good
+
+Presentation:
+3: good
+
+Contribution:
+3: good
+
+Strengths:
+1. The paper is well-written with clear logic.
+2. The use of MIM and LLM for image generation introduces a novel approach.
+3. The two-stage training method improves the generation results.
+
+Weaknesses:
+1. The quality of the generated images does not yet match that of existing methods (e.g., pixart-alpha, SDXL), with some loss of detail. This is noticeable from the comparison in column B of Figure 5.
+2. Some aspects of the methodology could be clearer, and the overall coherence of the approach could be strengthened.
+3. While the proposed method demonstrates efficiency advantages, particularly in faster training convergence, this can be influenced by various factors. However, the related experiments in the paper could be more comprehensive.
+4. The semantic accuracy of the generated images, a potential strength of Fantasy, is not fully demonstrated in the paper. For instance, the model's ability to handle prompts with multiple entities, color attribute descriptions, or retaining key elements in long text inputs is not adequately showcased.
+
+Limitations:
+Yes.
+
+Rating:
+5: marginally below the acceptance threshold
+
+Confidence:
+4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+
+REVIEW 
+Summary:
+This paper proposes a technique for training transformer based masked image modeling in an efficient way. Two main contributions include (1) use of a LLM decoder as text embeddings, and (2) Two-stage training strategy for MIM models. Experimental results show good generation quality.
+
+Soundness:
+2: fair
+
+Presentation:
+2: fair
+
+Contribution:
+2: fair
+
+Strengths:
+- The use of LLMs as text encoders seem interesting.
+- Two-stage training approach makes sense. First, the use of pretraining data helps the model learn a general text-image model, and the high quality alignment data can improve the quality of generations.
+- Training models on low resources seem appealing.
+
+Weaknesses:
+- I don't see anything new proposed in this paper. The authors simply use Phi-2 model as text encoder with MIM models, and use two-stage training. 
+- Even two-stage training is not something new to image synthesis. People have been doing aesthetic finetuning to improve image quality in diffusion models (eg. stable diffusion). The authors extend this to instruction-image data.
+- The quality of generated images are not very impressive. When zoomed in, we notice a lot of visible artifacts. The generated images are also flat and doesn't have a lot of details.
+
+Limitations:
+N/A
+
+Rating:
+4: Borderline reject: Technically solid paper where reasons to reject, e.g., limited evaluation, outweigh reasons to accept, e.g., good evaluation. Please use sparingly.
+
+Confidence:
+4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+
+REVIEW 
+Summary:
+To develop a resource-efficient, high-quality image generator for long instructions, the authors presented Fantasy, an efficient T2I generation model that integrates a lightweight decoder-only LLM and a transformer-based masked image modeling (MIM). 
+
+They demonstrate that with appropriate training strategies and high-quality data, MIM can also achieve comparable performance.
+
+By incorporating pre-trained decoder-only LLMs as the text encoder, they observe a significant improvement in text fidelity compared to the widely used CLIP text encoder, enhancing the text image alignment. 
+
+Their training includes two stages: 1) large-scale concept alignment pre-training, and 2) fine-tuning with high-quality instruction-image data. 
+
+They conduct evaluation on FID, HPSv2 benchmarks, and human feedback, which demonstrate the competitive performance of Fantasy against other diffusion and autoregressive models.
+
+Soundness:
+2: fair
+
+Presentation:
+2: fair
+
+Contribution:
+2: fair
+
+Strengths:
+- The author proposed a T2I framework that combines several more recent components and performed a series of comparisons, including both quantitative and human evaluations.
+
+Weaknesses:
+- the major concern of the work is unclear contributions. The claimed three contributions or core designs are quite similar with existing works.
+- Efficient T2I network: there is no justification about why the network is “efficient”. Simply adopting a smaller LLM like Phi-2 can hardly be claimed as efficient network design. 
+- The hierarchical training strategy was also proposed before, it is not clear what is the difference with existing work.
+- High quality data: the training data utilize Laion-2B and use existing filtering strategy. The collection high quality synthesized images from existing datasets.
+- The evaluation metrics are mainly based on HPSv2, which has a limited range of values, e.g., HPSv2 has close values for SDv1.4 and SD2.0, e.g., 27.26 vs 27.48. Why SDXL is missing in Table 1?
+- The author acknowledged that their model lags behind diffusion-based models in visual appeal, limited by the 8K size of VQGAN’s codebook and not targeting visual appeal. However, there is no solution or further study for solving this problem, which limits the scalability of the model.
+- The scaling study in section 4.2 seems pretty premature and it is unclear what is the limit of the scaling. Increasing the model depth can improve the performance, which has been verified from previous work such as in https://arxiv.org/abs/2212.09748 or https://arxiv.org/abs/2404.02883.
+
+Limitations:
+I would encourage the authors to emphasize about the core contributions rather than combining everything together, which can hardly show significant performance improvement over existing public models.
+
+Rating:
+4: Borderline reject: Technically solid paper where reasons to reject, e.g., limited evaluation, outweigh reasons to accept, e.g., good evaluation. Please use sparingly.
+
+Confidence:
+4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+
+";0
+wZ5kEOCTce;"REVIEW 
+Summary:
+This paper reveals the role of inter-patch dependencies in the decoder of MAE on representation learning. The paper shows that MAE achieves coherent image reconstruction through global representations learned in the encoder rather than interactions between patches in the decoder. Based on this, the authors propose CrossMAE, which only utilizes cross-attention in the decoder.
+
+Soundness:
+2: fair
+
+Presentation:
+3: good
+
+Contribution:
+2: fair
+
+Strengths:
+- The approach of analyzing the reconstruction process through self-attention between mask tokens and cross-attention between mask and visible tokens is intriguing.
+- The writing is clear and easy to follow, with main messages that are solid and insightful.
+
+Weaknesses:
+1. Idea/Novelty
+- The claim that MAE reconstruction is achieved through global representation learning within the encoder rather than interactions between patches needs more support. Recent studies linking MAE to contrastive learning have found that the receptive field of specific mask tokens in the decoder is relatively small. Could the role of mask tokens in the decoder be to capture local area information? This might explain the smaller attention magnitude of masked tokens compared to visible tokens in Figure 1(b). 
+- There is a concern that without self-attention (i.e., with the proposed method), the observation that authors made on the vanilla MAE may no longer be valid. Additional explanation on this point is necessary as this observation is the main motivation for suggesting CrossMAE.
+
+2. Additional justification
+- Effectiveness of using a subset of mask tokens as queries: Unlike the traditional architecture, this method uses only a subset of mask tokens as queries. Detailed analysis and interpretation are needed on why this is effective. 
+- Performance differences when using the entire set of mask tokens versus a subset (and what percentage of mask tokens is used) should be reported.
+
+3. Experiment
+- For a fair comparison, CrossMAE's performance should be evaluated using the same setting as the original MAE, especially regarding the fine-tuning recipe.
+- The current experimental results do not convincingly demonstrate the effectiveness of the method. For classification tasks, only the linear-probing and fine-tuning results on IN1K are reported. Following the previous works, classification on various downstream datasets should be also considered.
+- For generalizability, evaluation on another task like semantic segmentation (e.g. on ADE20K) would be useful to verify that the suggested method learns the generalizable feature representation.
+
+Limitations:
+The authors have not discussed limitations of this work except for the very last sentence of section 5, indicating that they have discussed limitations in this section in the questionnaire #2. It is strongly recommended to disclose more detailed limitations of the proposed work.
+
+Rating:
+4: Borderline reject: Technically solid paper where reasons to reject, e.g., limited evaluation, outweigh reasons to accept, e.g., good evaluation. Please use sparingly.
+
+Confidence:
+4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+
+REVIEW 
+Summary:
+The paper introduces a novel pre-training approach called CrossMAE. Instead of concatenating the masked and visible tokens for the decoder, the authors add cross-attention to decode the masked tokens by using them and the visible patch embeddings as separate inputs to the decoder. Further, the authors introduce a method to only partially reconstruct the masked patches, and leverage inter-bock attention to fuse feature across different layers.
+
+Soundness:
+3: good
+
+Presentation:
+3: good
+
+Contribution:
+2: fair
+
+Strengths:
+- The paper is well motivated through a practical observation
+- The authors propose a useful technical contribution which seem intuitive given the described observations
+- The paper is well written and technically sound
+- All visualizations provide additional value, I especially like Figure 5. It describes the effect of the contributions well
+- Judging from the experiment section, the presented approach mostly improves over the vanilla MAE and other MAE-like follow-up works
+
+Weaknesses:
+- I feel like the paper is missing a more structure ablation of the individual contributions. I think the paper would benefit from having a simple table where all contributions are added sequentially to better identify the performance effect of the individual contributions as in:
+	MAE X.X
+	+ Cross-Attn X.X
+	+ Partial Reconstruction X.X
+	+ Inter-Block Attn X.X
+- As can be observed from Table 3 c), the final setting (underlined) of the prediction ratio, 0.75, turns out to be exactly the same as the optimal masking ratio, 0.75. If I understood correctly, this means that in practice, CrossMAE works best when it predicts all tokens that were masked, not just a fraction of them. Only predicting part of the masked tokens was previously listed as a contribution. Therefore, I don’t understand how this additional hyper parameter provides any benefit for better downstream performance. Maybe I’m missing something and this be cleared up by answering the previous point.
+- All models are only trained for 800 epochs. The original MAE reaches peak performance at 1600 epochs. For a thorough comparison, it would be necessary to also train CrossMAE for 1600 epochs and see if the performance gains sustain, or if performance has peaked at 800 epochs.
+- Table 1 is missing the CrossMAE ViT-H with 75% masking ratio
+- Contribution 2 and 3 don’t seem to be as well motivated in the introduction in comparison to Contribution 1
+- Better performance is listed as a contribution. IMO this is not a contribution, rather a result of the technical contributions
+
+Limitations:
+The authors have sufficiently addressed the limitations of their approach.
+
+Rating:
+5: marginally below the acceptance threshold
+
+Confidence:
+4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+
+REVIEW 
+Summary:
+This paper presents CrossMAE, a methodology for improving pre-training efficiency over that of MAE for an encoder. The paper motivates its approach by presenting visual evidence that, in standard MAE pre-training, masked tokens attend to other masked tokens significantly less than to non-masked (aka, visible) tokens. Using this motivation, the paper then presents CrossMAE, which differs from MAE largely in that it replaces the MAE self-attention with cross-attention between the masked tokens and a learnable weighted combination of the encoder feature maps. This aspect decouples queries from keys and values (which is not the case in MAE), which the paper then exploits to allow only some (but not necessarily all) mask tokens to be used during reconstruction to pre-train the model. The paper presents an analysis of which encoder block features are optimal to cross attend with each decoder block, and it presents ablation studies on multiple design decisions. Finally, it presents visual and fine-tuning results showing comparable performance to MAE and similar methods.
+
+Soundness:
+3: good
+
+Presentation:
+3: good
+
+Contribution:
+3: good
+
+Strengths:
+This paper motivates CrossMAE well by showing evidence of a potential inefficiency in MAE (self-attention) and then presenting an approach to remedy it (cross attention). I particularly like how the paper delves even deeper, though: instead of stopping at the level of replacing self-attention with cross-attention, it then points out that this choice allows for a significantly fewer number of masked patches to have to be reconstructed, which reduces flop count significantly. The ablations in Table 3 are fairly thorough and answered some questions I have developed. The performance of CrossMAE appears comparable to other SOTA methods but with significantly more efficient pretraining.
+
+Weaknesses:
+1) In Fig 1b, IIUC, for one particular mask token, the two $\mu$'s are the respective attention values averaged over all transformer blocks and all masked/non-masked tokens. If this is the case, my concern is that by averaging over all transformer blocks, variations in the attention is being hidden. Naively, I would think that for early blocks, the attention due to masked tokens would be small (as the paper concludes) but becomes larger for the later blocks (since now the masked tokens have actual useful signal in them). Did you consider this?
+
+2) I do not follow why CrossMAE does not need an MLP at the end to convert final decoder tokens back to raw pixels. Line 218 says that the inputs to the first encoder block are included in the feature maps for cross attentions. Does this cause a final MLP to not be used?
+
+3) Less critical:
+  3a) Fig 1b should point the reader to Section A.1. I spent much of my reading confused about what $\mu$ is.
+  3b) Fig 4a should have a different number of decoder layers than encoder layers. When I saw this figure, I immediately wondered why a decoder block wasn't being paired with feature maps from its ""partner"" encoder. I had to wait until lines 204-207 to get an explanation of why this doesn't work.
+  3c) Line 187 references a ""second question"" in Sec 3.1, which doesn't exist as far as I can tell.
+  3d) Fig 4a shows the ""vanilla"" version of Cross MAE, where the final encoder layer feature maps are attended with all decoder layers. But the paper presents results exclusively (?) on the version that uses a learned combination of the feature maps. Anyway, the figure confused me. Maybe I just didn't understand what the solid arrows vs dotted ones are supposed to represent.
+
+Limitations:
+No weaknesses are specifically addressed. But as this paper is essentially an optimization to MAE, I'm not sure this question is relevent.
+
+Rating:
+7: Accept: Technically solid paper, with high impact on at least one sub-area, or moderate-to-high impact on more than one areas, with good-to-excellent evaluation, resources, reproducibility, and no unaddressed ethical considerations.
+
+Confidence:
+4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+
+";0
+TJJ4gZtkS4;"REVIEW 
+Summary:
+This paper proposes new methods to count the number of linear regions in neural networks by viewing them as tropical Puiseux rational maps. By computing their Hoffman constant, the authors are able to identify a sampling radius which ensures that all the network’s linear regions will be intersected. They use this insight to propose algorithms for counting the number of linear regions for both invariant and traditional networks.
+
+Soundness:
+1: poor
+
+Presentation:
+2: fair
+
+Contribution:
+1: poor
+
+Strengths:
+The paper is well-written with virtually no typos and errors. The technical content is accessible and not unnecessarily convoluted and the proofs and concepts are presented clearly.
+
+Weaknesses:
+The main weakness of the work, in my opinion, can be summarized in the following points:
+
+- the connections to tropical geometry and group theory are not rigorous beyond the point of simple notational fixes
+- the motivation for the work and how it fills gaps in the existing literature is unclear, and
+- the effective utility of the approach is not convincingly demonstrated by the theory or experiments.
+
+**Rigor of tropical and group theories**
+
+I believe this point is the biggest weakness of the paper. From the perspective of tropical algebra, vectors and polynomials live in $\bar{\mathbb{R}}$. The authors mention $\bar{\mathbb{R}}$ in line 87, but then this is never used in most of their work. This might seem as a notational fix, but it is not, as it introduces problems in virtually every single result in the paper. This first becomes a real issue in (4), where maximums are taken over, potentially, $\infty$. How is it guaranteed that (4) exists in the context of tropical algebra? This is a recurring problem that appears in (5), (6), and (7). Another important issue at the intersection of group theory and tropical algebra is how groups are defined. Semirings, by construction, are objects that do not admit additive inverses. This means that, if one wants to define groups on such structures, great care needs to be taken as to how groups are defined, how they act on vector spaces, and what groups are actually permissible in this context.
+
+From the perspective of group theory how is the group action defined? How do the group elements act on vectors in tropical spaces? Group representations $\rho: G \to \operatorname{GL}$ require the concept of an invertible matrix, however that concept is ill-defined in tropical vector spaces.
+
+(Moreover, the authors define incorrectly $\bar{\mathbb{R}}$. The infinity element needs to be the identity element of tropical addition: if one opts to use the max-plus semiring, $-\infty$ should be used. If we use the min-plus semiring, $\infty$ should be used. However, this is a notational fix.) 
+
+**Motivation**
+
+In terms of motivation it is unclear how the work is related to the existing works. There have been countless results on the number of linear regions of neural networks, and quite a few results using tropical geometry at that. What void in the literature does this paper fill? The related work paragraph lists some of the works in tropical geometry, but doesn’t highlight where these works come short and how the proposed manuscript fills that void. Moreover, there is no discussion of why the existing works on linear counting that do not utilize tropical geometry are also not able to handle the presented context.
+
+**Effective utility**
+
+At the end of the day, I’m not sure I understand what the utility of the method is. Ignoring here the questions on motivation, the goal is to make deep learning more interpretable. However, the authors’ experiments diverge when input sizes are larger than $6$ and the networks are deeper than $4$ layers. Modern deep learning uses input sizes significantly larger than $100$ and decade old networks are deeper than $10$ layers. So what effectively are we learning about deep networks?
+
+Unfortunately, there are some larger issues with the method and experiments. Beyond the concerns from the perspective of tropical geometry, we have zero guarantees about the upper and lower bounds of the Hoffman constant. There is no asymptotic analysis on the sample complexities of the bounds, no analyses about tightness or optimality, or even, at the very least, an analysis that the bounds are not vacuous or trivial. On line 272 the authors claim that even though their estimate diverges, that’s acceptable because frequently we’re interested is an upper bound on expressivity. However, how can we guarantee that there the number of regions is not undercounted (I couldn’t find a proof)? For that statement to be true the bound needs to be tight, but from their own experiments (Tables 1 and 2), the true $H$ ends up being larger than the upper bound, which is used to calculate the radius and eventually the radius. Obviously, then, the computed bounds are not representative: then, since the estimate Hoffman constant is not accurate and the algorithm diverges, what essentially do we gain?
+
+Limitations:
+I think the authors accurately identify the main limitations of their approach, which relates to the large computational complexity.
+
+Rating:
+3: reject, not good enough
+
+Confidence:
+5: You are absolutely certain about your assessment. You are very familiar with the related work and checked the math/other details carefully.
+
+REVIEW 
+Summary:
+This study investigates the expressive power of deep fully-connected ReLU networks (or a piecewise linear function) from the perspective of tropical geometry. The number of linear regions gives an estimate of the information capacity of the network, and the authors provide a novel tropical geometric approach to selecting sampling domains among linear regions.
+
+Soundness:
+3: good
+
+Presentation:
+2: fair
+
+Contribution:
+2: fair
+
+Strengths:
+- An effective sampling domain is proposed as a ball of radius bounded by Hoffman constant, a combinatorial invariant
+
+- The proposed sampling algorithm is doable and implemented.
+
+Weaknesses:
+- The proposed algorithms suffer from the curse of dimensionality
+
+Limitations:
+it is discussed in Section 6
+
+Rating:
+6: marginally above the acceptance threshold
+
+Confidence:
+3: You are fairly confident in your assessment. It is possible that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked.
+
+REVIEW 
+Summary:
+The paper studies the expressivity of neural networks as captured by the number of linear regions using tools from tropical geometry. There are three main contributions, two of which are theoretical and the other is about open source library that allows the analysis of neural networks as Puiseux rational maps. 
+
+The first theoretical contribution is that they propose a new approach for selecting sampling domains among the linear regions and the second is a way to prune the search space for network architectures with symmetries.
+
+Prior work on tropical geometry and deep neural nets have analyzed ReLU and maxout units. Contrary to prior works, this work makes an effort to understand the geometry of the linear regions not just their number. To do so the authors propose a way of sampling the domain that leads to more accurate estimates compared to random sampling from the input space, which is a previously used alternative that can result in some missed linear regions and hence in inaccurate estimates about the information capacity of the neural network. This insight about sampling, allows then the authors to reduce the time to estimate the linear regions of special types of neural networks that exhibit some symmetry. This essentially reduces the number of samples needed and they experimentally verify their results.
+
+Finally, the authors release OSCAR an open source library.
+
+Soundness:
+3: good
+
+Presentation:
+3: good
+
+Contribution:
+3: good
+
+Strengths:
+-connections of neural networks expressibity with tropical geometry, though they have been exploited in the past, are strengthened in this paper
+
+-the paper presents a nice story that leads to faster sampling methods, both in theory and in practice.
+
+Weaknesses:
+-the main weakness I see in the paper is that, though well-motivated and interesting, it lacks technical depth. For example, there is essentially one main result stated as Theorem 4.3, and some intermediate results stated as Lemma 3.3 and Proposition 3.4. On the one hand, the latter two are simple observations about Puiseux polynomials, and on the other hand the proof of the Theorem 4.3 is not more than 3 lines (as shown in Appendix C). As such, I believe it is a nice transfer of ideas from tropical geometry to neural networks, but given that the connection was already there and used in prior works more than 10 years back, I don't think the better sampling algorithm is solid enough.
+
+Limitations:
+See weaknesses.
+
+Rating:
+3: reject, not good enough
+
+Confidence:
+3: You are fairly confident in your assessment. It is possible that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked.
+
+REVIEW 
+Summary:
+This work provides a geometric characterization of the linear regions in a neural network via the input space. Although linear regions are usually estimated by randomly sampling from the input space, stochasticity may cause some linear regions of a neural network to be missed. This paper proposes an effective sampling domain as a ball of radius R and computes bounds for the radius R based on a combinatorial invariant known as the Hoffman constant, which gives a geometric characterization for the linear regions of a neural network. Further, the paper exploits geometric insight into the linear regions of a neural network to gain dramatic computational efficiency when networks exhibit invariance under symmetry. Lastly, the paper provides code for converting trained and untrained neural networks into algebraic symbolic objects, useful for precisely the kinds of analysis this paper performs.
+
+Soundness:
+2: fair
+
+Presentation:
+4: excellent
+
+Contribution:
+3: good
+
+Strengths:
+1. The authors present an interesting and novel way to analyze the capacity of a neural network using fundamental notions from tropical geometry.
+
+2. The paper and theory were very clearly presented. In terms of writing, the presentation of the relevant tropical geometry for purposes of Hoffman constant estimation Section 3 was excellent.
+
+Weaknesses:
+1. My greatest concern in this paper stems from the experiments for upper and lower bound estimation for Hoffman constants given in Tables 1, 2, and 3 in the appendix. It seems the experimental upper and lower bounds computed there do not actually bound the true Hoffman constant. I understand that the upper bound may be loose due to the way it is estimated, but the lower bound should always be below the true Hoffman constant, as per my understanding. Yet for, say, the first of eight computations in table 1, the lower bound $H_L$ is $0.5460$, which is clearly above the true value of $H$, given to be $0.3298$. For that example, the upper bound $H^U$ is given to be $0.2081$, which is clearly not above the true value. This pattern continues, and the lower and upper bounds for the Hoffman constants seem to fluctuate somewhat arbitrarily around the true Hoffman constants, which is concerning. I am currently assuming that there is some kind of mistake with these experimental values and would like a clarification from the authors regarding this.
+
+2. Due to the curse of dimensionality, this method for estimating the expressiveness of neural networks can only be applied to simple neural networks in practice. This is very apparent due to the way the numerical approach requires sampling on a mesh grid in an $n$-dimensional box (but is also true for the symbolic approach, that relies on the computation of the Puiseux rational function associated with a neural network, which becomes increasingly quite hard in higher dimensions). To the credit of the authors, they are up-front about this limitation, but this does significantly hinder the applicability of the presented results.
+
+Limitations:
+The authors adequately discuss the limitations of their work in Section 6.
+
+Rating:
+4: Borderline reject: Technically solid paper where reasons to reject, e.g., limited evaluation, outweigh reasons to accept, e.g., good evaluation. Please use sparingly.
+
+Confidence:
+4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+
+";0
+zFHJUSTZka;"REVIEW 
+Summary:
+This paper propose OAIF, an online method to align language model with human preference where feedback from language models serve as a surrogate of human feedback. The key of OAIF is to use online generated preference pair along the training process. Experiment results shows that, by switching offline preference dataset to online dataset labeled by other language models, the generated responses are more aligned with human preference.
+
+Soundness:
+2: fair
+
+Presentation:
+3: good
+
+Contribution:
+2: fair
+
+Strengths:
+The strengths of the paper are listed below:
+
+1. This paper introduces OAIF, which is featured by using on-the-fly generated preference pairs and AI-provided labels.
+2. The author conducted experiment on various direct alignment methods and the results consolidate the claim by the authors
+
+Weaknesses:
+My questions and concerns are listed as follows:
+
+1. My first concern is regarding the novelty of the paper. It seems that the language model annotator is essentially a preference model. Therefore, OAIF can be seen as a method of online direct alignment algorithm with access to a preference model. The author mentioned several previous work with on-policy generation and online feedback but in need of a reward model. How is OAIF different from different from these method if we simply plug in the language model annotator as the reward model in their methods?
+2. At line 118 the author pointed out that RM might suffer from distribution shift because the training data of RM might not share the same distribution with $\pi_\theta$. However, it seems to me that using language model as preference annotator cannot bypass this problem since the language models' pretraining corpus or the finetuning corpus relating to preference labeling has a similar distribution with $\pi_\theta$.
+3. How is OAIF's performance compared to other online methods like RSO and IterativeDPO? I think that these methods might also be included as baselines since reward model can also be taken by AI annotators.
+
+Limitations:
+The limitation is discussed by the author
+
+Rating:
+4: Borderline reject: Technically solid paper where reasons to reject, e.g., limited evaluation, outweigh reasons to accept, e.g., good evaluation. Please use sparingly.
+
+Confidence:
+3: You are fairly confident in your assessment. It is possible that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked.
+
+REVIEW 
+Summary:
+This work extends offline preference learning methods, i.e., DPO, to a online variant by using LLM as annotator to collect new datasets for further preference learning. The results show that Direct alignment from preferences (DAP) methods win-rate over the offline methods beyond 60%.
+
+Soundness:
+3: good
+
+Presentation:
+3: good
+
+Contribution:
+2: fair
+
+Strengths:
+1. Paper is good writing, easy to follow.
+2. This online variant provides demonstrates significant performance improvements over offline DAP and RLHF methods through comprehensive evaluations.
+
+Weaknesses:
+1. The improvement by extending online is under expectation as it introduces more datasets and training budgets. 
+2. The contribution is limited. The only difference compared to the prior method is substituting the reward model of prior methods (Iterative DPO) to LLMs, though I agree the explicitly static reward model may introduce the model distributional shift problem.
+3. Some drawings or comparisons are not fair enough. (a). Table 1 explicitly avoids the limitation of this method by leveraging the feedback from LLM, though it is another variant of the ""reward model"". (b). Figure 3, the training step is not an approximate x-axis as the online DPO variant has been heavily fine-tuned offline. 
+4. There are no theoretical foundations, or new plausible explanations, aside from more datasets and the online budget, for the further improvement of the online variant DPO.
+
+Limitations:
+see Weaknesses
+
+Rating:
+4: Borderline reject: Technically solid paper where reasons to reject, e.g., limited evaluation, outweigh reasons to accept, e.g., good evaluation. Please use sparingly.
+
+Confidence:
+4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+
+REVIEW 
+Summary:
+This paper applies direct alignment from preferences (DAP) methods, particularly DPO, to online settings where responses are sampled in an on-policy manner and feedback is provided by the LLM annotator in real-time. Extensive experiments demonstrate the effectiveness of these simple ideas.
+
+Soundness:
+3: good
+
+Presentation:
+3: good
+
+Contribution:
+2: fair
+
+Strengths:
+The paper is well-written, with detailed explanations of introduced definitions and discussions with existing methods. 
+
+The experiments are well-designed, supporting the main idea of the paper. The proposed prompt-controllable approach is particularly commendable.
+
+Weaknesses:
+The rationale for why on-policy learning brings performance gains is not well clarified. The cited reference [1] does not provide strong support for this claim. There is no experimental evidence that on-policy sampling encourages exploration. 
+
+Most experiments are conducted with the closed-source LLM Palm; evaluating state-of-the-art open-sourced LLMs would enhance generalizability. 
+
+It is unclear how much of the performance gains are due to on-policy sampling versus online feedback. 
+
+The reasons why utilizing online on-policy data can avoid overfitting and improve performance should be further analyzed and discussed.
+
+References:
+[1] Lambert, N., Wulfmeier, M., Whitney, W., Byravan, A., Bloesch, M., Dasagi, V., Hertweck, T., and Riedmiller, M. The challenges of exploration for offline reinforcement learning. arXiv preprint arXiv:2201.11861, 2022.
+
+Limitations:
+The computational overhead introduced by on-policy sampling and online feedback is not discussed.
+
+Rating:
+5: marginally below the acceptance threshold
+
+Confidence:
+4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+
+REVIEW 
+Summary:
+The paper presents a new method called Online AI Feedback (OAIF) for direct alignment from preferences (DAP) that addresses the limitations of existing DAP methods, which rely on static, offline feedback datasets. By using an LLM as an online annotator to provide real-time feedback during each training iteration, OAIF ensures the alignment process remains on-policy and adapts dynamically to the evolving model. Through human evaluations across various tasks, the authors demonstrate that OAIF outperforms traditional offline DAP and reinforcement learning from human feedback (RLHF) methods.
+
+Soundness:
+2: fair
+
+Presentation:
+3: good
+
+Contribution:
+2: fair
+
+Strengths:
+OAIF uses LLMs for preference annotation, eliminating the need for a separate reward model and large datasets typically required for RLHF methods. It introduces a new way to address off-policy issues in policy optimization, a significant problem in traditional DPO methods.
+
+The paper is well-written and easy to understand. OAIF outperforms offline DPO and other offline RLHF methods.
+
+Weaknesses:
+1. The idea is straightforward but lacks theoretical proof. The proposed method combines DPO and AI feedback, unlike the constitutional AI paper, which integrates PPO with AI feedback. However, this point is minor. Given the abundance of concurrent work [1-7], the authors should further develop the theoretical analysis of their approach to strengthen their method. 
+
+2. Different methods should use an equal amount of training data. In the second epoch of onlineDPO, although the prompts remain the same as in the first epoch, the responses and rank information differ due to online generation.
+
+3. Recent results on Reward Bench indicate that small reward models are more effective than LLM critiques. The iterative DPO methods are similar to OAIF DPO. A performance comparison between OAIF and various iterative DPO methods using cheaper reward models, as both address the off-policy issue, is essential and should be included.
+
+[1] Iterative Preference Learning from Human Feedback: Bridging Theory and Practice for RLHF under KL-Constraint
+
+[2] RS-DPO: A Hybrid Rejection Sampling and Direct Preference Optimization Method for Alignment of Large Language Models
+
+[3] RSO: Statistical rejection sampling improves preference optimization
+
+[4] Some things are more cringe than others: Preference optimization with the pairwise cringe loss. arXiv preprint arXiv:2312.16682
+
+[5] Hoang Tran, Chris Glaze, and Braden Hancock. 2023. Iterative dpo alignment. Technical report, Snorkel AI.
+
+[6] Self-rewarding language models. arXiv preprint arXiv:2401.10020
+
+[7] Is dpo superior to ppo for llm alignment? a comprehensive study. arXiv preprint arXiv:2404.10719.
+
+Limitations:
+N/A
+
+Rating:
+3: reject, not good enough
+
+Confidence:
+4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+
+";0
+ndIum4ByTU;"REVIEW 
+Summary:
+This paper addresses the issue of the flow matching method's lack of dependence on the data population. It proposes incorporating the initial population density into the vector field through amortization—using a Graph Neural Network (GNN) to embed the populations and adding this embedding to the input of the vector field network. The paper argues that this dependence would better model the data due to sample interactions, demonstrating improved generalization on unseen initial distributions. The method's application is showcased in perturbation drug screening.
+
+Soundness:
+4: excellent
+
+Presentation:
+4: excellent
+
+Contribution:
+3: good
+
+Strengths:
+### Originality
+The problem setting of adding population dependence to flow matching is novel. The model framework of adding input to the vector field network using a GNN as a population encoder is also novel.
+
+### Clarity
+
+The paper is clearly written, with rigorous mathematical notations. The related work and introductions are especially well-written.
+
+### Quality
+
+The writing is good, and the experiment involves many baselines.
+
+### Significance
+
+The proposed method excels at generalizing to unseen populations, which is a significant improvement over existing methods, particularly when the conditions for generation are complex. The application on drug screening addresses a significant scientific problem and holds promise for personalized healthcare.
+
+Weaknesses:
+1. The paper could explain more about the meta-learning aspect of this method.
+2. It could include explanations and/or ablation studies on the role of meta-learning and the GNN, especially in the synthetic experiment.
+3. More detail is needed on what properties of the Wasserstein manifold of probabilities are used in the model. It is unclear how the model proposed in section 3.2 depends on the properties of the Wasserstein manifold described in section 3.1.
+
+Limitations:
+The authors have adequately addressed the limitations.
+
+Rating:
+7: Accept: Technically solid paper, with high impact on at least one sub-area, or moderate-to-high impact on more than one areas, with good-to-excellent evaluation, resources, reproducibility, and no unaddressed ethical considerations.
+
+Confidence:
+4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+
+REVIEW 
+Summary:
+This paper proposed an extension of the Conditional Generative Modeling via Flow Matching (CGFM) framework. Taken inspiration from the theory of Wasserstein Gradient Flow, this new framework, Meta Flow Matching, proposed to learn the push-forward mapping of multiple measures in the same measures-space. This is motivated by the realistic problem of modeling single-cell perturbation data where we want to see the response of populations of cells of patients when receiving different treatments. A novelty of Meta Flow Matching is that by combining amortized optimization and CGFM, the trained MFM velocity network can model newly observed populations _without_ knowing their labels/conditions. Two empirical benchmarks were performed to showcase the effectiveness of MFM compared to the Flow Matching (FM) and CGFM.
+
+Soundness:
+3: good
+
+Presentation:
+2: fair
+
+Contribution:
+2: fair
+
+Strengths:
+- The method proposed is novel enough, and the problem is well-motivated. I also find the idea of integration of GNN to model the conditional variable quite neat. The method is based on the well-studied theory of Wasserstein gradient flow on measure spaces and amortized optimization framework.
+
+- The empirical benchmark, especially on real biological data, seems to showcase the strength of MFM.
+
+- Overall the paper is quite well written and easy to follow.
+
+Weaknesses:
+- The first part of the methodology section seems to be phrased as a new methodological contribution, but if I'm not mistaken this is just more or less restating the already established theory of W2 gradient flow and continuity equation (eq 14). I think the authors should put Section 3.1 into the background section (2nd Section).
+
+- There is a lack of discussion on whether the 3 crucial assumptions (line 145-152) are satisfied in a realistic biological setting. For example, in theory, Assumption (iii) on the unique existence of the Cauchy problem stands when the velocity field satisfies some regularity conditions -- I'm not sure this can be extended to a parameterized neural network that takes input from another (graph) neural network as an embedding function, which is hardly Lipschitz smooth in most of the case.
+
+- Algorithm boxes at the end of section 3 is highly welcome. Or if the authors cannot allocate the space, I highly recommend putting two (one for training and one for sampling) into the Appendix. It is quite hard to follow how the velocity is trained in reality. For example, what function $f_t(x_0, x_1)$ did the authors take for this work? Is it still linear interpolation as vanilla flow matching? Or does it involve adding some form of stochasticity as in stochastic interpolant or VP-SDE as in diffusion model? Is the coupling $(x_0, x_1)$ sampled to match randomly, or they are sampled to some form of alignment as in the multisample flow matching paper (Pooladian et al. 2023)?
+
+- This might not be the original purpose of this work, but I would love to see how MFM perform on conditional image generation task. One can pick a simple small dataset such as CIFAR10 that already includes class labels, or better yet ImageNet dataset. The performance in this takse will be much more convincing than the synthetic experiment, where I would argue would target the same type of task.
+
+Limitations:
+See weaknesses.
+
+Rating:
+5: marginally below the acceptance threshold
+
+Confidence:
+4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+
+REVIEW 
+Summary:
+The paper discussed the novel problem setup of generative modeling of the dynamics of probability distributions. The paper proposed Meta Flow Matching (MFM), an extension of the flow matching framework for implicitly learning the vector fields on the Wasserstein manifold of probability distributions. The paper demonstrated better transferability of the proposed framework on unseen distributions on both synthetic datasets and real-world drug-screen datasets.
+
+Soundness:
+3: good
+
+Presentation:
+3: good
+
+Contribution:
+3: good
+
+Strengths:
+- The problem setup of learning a flow matching model for mappings between distributions (i.e., a probability path on the Wasserstein manifold), to the best of my knowledge, is novel and has not been explored in previous work.
+- The idea of using distribution-specific embeddings (the population embeddings) is well explained and motivated in the paper.
+- The proposed method demonstrates better transferability on both synthetic and real-world datasets compared to other baselines.
+
+Weaknesses:
+- The proposed method seems to be a special case of a conditionally trained flow matching model where the conditions are continuous learnable embeddings. Such an idea has already been applied in various diffusion or flow matching models including image generation (conditioned on text embedding in the latent space), protein co-design [1] (conditioned on sequence, generate protein structure, or vice versa), and peptide design [2] (conditioned on receptor proteins, generate peptides).
+
+- The idea of population embedding in the paper is similar to task embedding, which has been well-explored in the meta learning (e.g. [3]). Although the authors claimed their framework to be *meta* flow matching, related work in meta learning seems to lack.
+
+
+[1] Campbell, Andrew, et al. ""Generative flows on discrete state-spaces: Enabling multimodal flows with applications to protein co-design."" arXiv preprint arXiv:2402.04997 (2024).
+
+[2] Li, Jiahan, et al. ""Full-Atom Peptide Design based on Multi-modal Flow Matching."" arXiv preprint arXiv:2406.00735 (2024).
+
+[3] Achille, Alessandro, et al. ""Task2vec: Task embedding for meta-learning."" Proceedings of the IEEE/CVF international conference on computer vision. 2019.
+
+Limitations:
+The authors have adequately and properly discussed the limitations and potential societal impact of the paper in the Appendix.
+
+Rating:
+6: marginally above the acceptance threshold
+
+Confidence:
+4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+
+REVIEW 
+Summary:
+This paper introduces Meta Flow Matching (MFM), a flow matching framework modeling interacting samples evolving over time by integrating vector fields on the Wasserstein manifold. The authors leverage a Graph Neural Network to embed populations of samples and thus generalize the method over different initial distributions. The authors demonstrate the method on individual treatment responses predictions on a large multi-patient single-cell drug screen dataset.
+
+Soundness:
+3: good
+
+Presentation:
+3: good
+
+Contribution:
+2: fair
+
+Strengths:
+Novelty: The method uniquely considers population interactions, unlike previous flow matching methods that model samples individually.
+
+Generalization: The authors extended conditioning on latent variables to conditioning on population index in section 3.2. The proposition in section 3.2 demonstrates that conditional flow matching can fit well within the MFM framework. The experiments show that MFM can generalize to unseen data, outperforming other methods in this regard.
+
+Weaknesses:
+In Table 1 of the synthetic experiment, the authors compared the performance of FM, CGFM and MFM of k=0,1,10,50. MFM doesn't seem to beat existing methods on the metrics and from the visualizations, it's hard to tell MFM is actually doing better than FM. Also, for the various values of k, some explanations on how performance correlates with values of k and why might be necessary for readers to understand this table.
+
+In both experiments, the authors only compared FM, CGFM, and in Table 2 also ICNN. Probably more methods, like diffusion, should also be taken into comparison. Also, in experiment 2, only W1, W2 and MMD are computed as metrics. While these are useful when modeling distributions, more metrics, especially those specific to this application may be applied.
+
+Limitations:
+The authors have not addressed limitations.
+
+Rating:
+5: marginally below the acceptance threshold
+
+Confidence:
+4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+
+";0
+rog0J435OO;"REVIEW 
+Summary:
+This paper proposes a novel method to address the high computational and memory complexity of current large-scale transformers. By adopting a simple yet effective column-wise sparse representation of attention masks, the algorithm achieves reduced memory and computational complexity while maintaining the accuracy of attention computation.
+
+Soundness:
+2: fair
+
+Presentation:
+2: fair
+
+Contribution:
+2: fair
+
+Strengths:
+1. This paper investigates a topic of interest, given the current trend toward increasing context lengths in LLMs.
+2. The method proposed in this paper is straightforward and easy to implement.
+3. The paper is well-written and clearly presented.
+
+Weaknesses:
+1. It is crucial to highlight the advantages of this method over related work to help readers fully understand its significance. However, in the subsection ""Attention Optimization Techniques,"" the authors only mention the drawback of FlashAttention and discuss its relationship to their work. The introduction of other related works is confusing and makes it difficult to comprehend their relevance to this paper. The overall conclusion, ""*Both of the previously discussed solutions either compromise precision or yield only marginal enhancements in efficiency. Conversely, our proposed FlashMask is capable of delivering exact computations.*"" is general and non-specific. It is unclear which methods compromise precision and which ones only offer marginal improvements.
+
+2. In the experiments, the baseline algorithms are limited to Vanilla Attention and FlashAttention. Are there more efficient Transformer algorithms that could be used for comparison? If not, the authors should explain the rationale behind the selection of these specific baselines.
+
+3. As a non-expert in this field, I found the writing of this paper confusing. For instance, the initialism ""HBN"" is introduced without any explanation or context.
+
+Limitations:
+none
+
+Rating:
+5: marginally below the acceptance threshold
+
+Confidence:
+3: You are fairly confident in your assessment. It is possible that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked.
+
+REVIEW 
+Summary:
+This paper proposes FlashMask, which accelerates the masked attention mechanism that can reduce the original attention from O(N^2) to O(N) and simultaneously reduces the memory cost. Experimental results show that the proposed FlashMask significantly reduces training time without accuracy degradation.
+
+Soundness:
+2: fair
+
+Presentation:
+3: good
+
+Contribution:
+2: fair
+
+Strengths:
++ This paper provides a comprehensive study and analysis about the sparse attention, in terms of their efficiency. Also, this paper includes existing attention optimization like FlashAttention, explaining the motivation of the proposed FlashMask, which lies in the lack of optimization for sparse attention.
+
++ This paper proposes an optimization for column-based sparse attention, which significantly improves memory efficiency and reduces computational costs.
+
++ This paper provides a comprehensive complexity analysis, evaluation, and comparison with existing methods. It seems the authors make a lot of efforts on the proposed approach.
+
+Weaknesses:
+- Even though FlashMask achieves significant improvement in the memory efficiency of sparse attention, the key idea is similar to FlashAttention, but it is just for sparse attention mechanisms. Based on this fact, the novelty of this paper is not strong. I recommend the authors explain why the red part in the algorithm is designed and why it is unique for sparse attention.
+
+- The authors only present optimization for column-based sparse attention. The performance for other types of sparse attention is unknown. If the proposed approach can be applied to all sparse attention, the contribution of this paper is extremely great. However, the existing version is not comprehensive.
+
+- Based on the experiments, the practical latency is not significantly reduced as compared to other methods, even though the theoretical complexity is from N^2 to N. Besides, the authors do not provide results for accuracy.
+
+Limitations:
+N/A
+
+Rating:
+4: Borderline reject: Technically solid paper where reasons to reject, e.g., limited evaluation, outweigh reasons to accept, e.g., good evaluation. Please use sparingly.
+
+Confidence:
+5: You are absolutely certain about your assessment. You are very familiar with the related work and checked the math/other details carefully.
+
+REVIEW 
+Summary:
+The paper introduces FlashMask, an innovative algorithm designed to address the computational and memory challenges associated with conventional attention mechanisms in large-scale Transformers. FlashMask employs a column-wise sparse representation for attention masks, significantly reducing the computational complexity from quadratic to linear with respect to sequence length. The authors demonstrate FlashMask's effectiveness across various masking scenarios and training modalities, including Supervised Fine-Tuning (SFT), Direct Preference Optimization (DPO), and Reward Model (RM).
+
+Soundness:
+3: good
+
+Presentation:
+2: fair
+
+Contribution:
+3: good
+
+Strengths:
+This paper presents a novel solution to a well-known problem in the field of natural language processing, offering a practical method to reduce the computational burden of attention mechanisms in Transformers.
+
+The paper provides extensive empirical evidence to support its claims, including comparisons with state-of-the-art techniques like FlashAttention, demonstrating FlashMask's superiority in terms of speed and efficiency.
+
+FlashMask's performance across different masking scenarios and training modalities shows its versatility and robustness, indicating its potential applicability to a wide range of models and tasks.
+
+Practical Impact: The paper not only presents theoretical advancements but also demonstrates practical benefits, such as enabling the
+
+Weaknesses:
+The scaling ability of the proposed method deserves further verified on large scale datasets.
+
+While the paper demonstrates FlashMask's effectiveness in specific scenarios, it may lack broader evidence on how it performs across different types of NLP tasks or diverse datasets.
+
+The paper could provide more detailed insights into how FlashMask handles different sparsity levels and the impact on various model sizes and complexities.
+
+Limitations:
+yes
+
+Rating:
+4: Borderline reject: Technically solid paper where reasons to reject, e.g., limited evaluation, outweigh reasons to accept, e.g., good evaluation. Please use sparingly.
+
+Confidence:
+4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+
+REVIEW 
+Summary:
+This paper proposes FlashMask, a modification of FlashAttention with fixed masks. The paper shows speedup of FlashAttention when using sparse masks in the attention matrix.
+
+Soundness:
+2: fair
+
+Presentation:
+2: fair
+
+Contribution:
+2: fair
+
+Strengths:
+FlashAttention is an important algorithm, and sparsity in the attention matrix is an important feature. Further study of these aspects is helpful.
+
+Weaknesses:
+The paper seems to make claims that are unsubstantiated by experiments. In the abstract and introduction, the paper claims speedup without sacrificing model quality. However, there is no experiment evaluating model quality in the experiments. This is a critical flaw.
+
+Further, the contribution of the paper is unclear. Block-sparsity is already supported in FlashAttention (see section 3.3 of FlashAttention). It is unclear how this paper is different. There are also more recent works such as ""Fast Attention Over Long Sequences With Dynamic Sparse Flash Attention"" (NeurIPS 2023), which seem to be strictly more expressive in features than this paper.
+
+Limitations:
+The paper discusses superlinear scaling in sequence length as a limitation, but is lacking in discussion of model quality.
+
+Rating:
+3: reject, not good enough
+
+Confidence:
+5: You are absolutely certain about your assessment. You are very familiar with the related work and checked the math/other details carefully.
+
+";0
+XgkrXpHl5j;"REVIEW 
+Summary:
+The paper introduces a Generalized Multimodal Fusion (GMF) method using the Poisson-Nernst-Planck (PNP) equation to address challenges in multimodal fusion, such as feature extraction efficacy, data integrity, feature dimension consistency, and adaptability across various downstream tasks. The GMF method leverages theoretical insights from information entropy and gradient flow to optimize multimodal tasks, treating features as charged particles and managing their movement through dissociation, concentration, and reconstruction. 
+
+Key contributions of the paper include:
+1. A theoretical framework combining PNP and information entropy to analyze multimodal fusion.
+2. A novel GMF method that dissociates features into modality-specific and modality-invariant subspaces.
+3. Experimental results showing GMF achieves competitive performance with fewer parameters on multimodal tasks like image-video retrieval and audio-video classification.
+
+Soundness:
+3: good
+
+Presentation:
+3: good
+
+Contribution:
+3: good
+
+Strengths:
+Originality: The application of the PNP equation from physics to multimodal feature fusion is novel and creative. The theoretical framework combining PNP and information entropy provides an original perspective on analyzing multimodal learning.
+
+Quality: The paper provides a solid theoretical foundation with detailed proofs and derivations. The experimental evaluation is comprehensive, covering multiple datasets and task types (NMT, EMT, GMT).
+
+Clarity: The paper is well-structured and clearly written. The methodology is explained step-by-step with helpful visualizations.
+
+Significance: The proposed GMF method shows promising results in terms of performance, parameter efficiency, and robustness to missing modalities. It has potential for broad applicability as a frontend for other fusion methods.
+
+Weaknesses:
+1.The theoretical analysis, while extensive, could benefit from more intuitive explanations to improve accessibility.
+2. The experimental section lacks ablation studies to isolate the impact of different components of the GMF method.
+3. While the method shows good results, the performance improvements over some baselines are relatively small in certain experiments (e.g. Table 2).
+4. The paper does not thoroughly discuss potential limitations of the approach or scenarios where it may not be suitable.
+
+Limitations:
+The authors briefly mention some limitations of linear operations for high-dimensional inputs in the conclusion. However, a more thorough discussion of potential limitations and failure cases would strengthen the paper. Additionally, while not highly relevant for this theoretical/methodological work, some discussion of potential negative societal impacts of improved multimodal fusion techniques (e.g. privacy concerns) could be included.
+
+Rating:
+6: marginally above the acceptance threshold
+
+Confidence:
+4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+
+REVIEW 
+Summary:
+The paper introduces CrossCheckGPT, a novel method for assessing hallucination robustness in multimodal foundation models without requiring reference standards. Utilizing cross-system consistency, the proposed method aims to provide a universal evaluation framework capable of being applied across various domains and tasks. This approach contrasts significantly with traditional hallucination assessments, which rely on comparison with gold-standard references and are limited to specific domains.
+
+Soundness:
+2: fair
+
+Presentation:
+2: fair
+
+Contribution:
+2: fair
+
+Strengths:
+1. The introduction of a reference-free universal hallucination ranking method addresses a significant gap in the evaluation of foundation models, particularly in new and emerging areas.
+2. The paper effectively demonstrates the method's versatility across different modalities (text, image, and audio-visual), enhancing its relevance to a wide range of applications.
+3. The development of the AVHalluBench, the first audio-visual hallucination benchmark, is a noteworthy contribution that sets a new standard for evaluating models in this complex domain.
+
+Weaknesses:
+1. The analysis on how different models' outputs are compared and the implications of these comparisons could be more detailed. Specifically, the paper lacks a deeper exploration into the sensitivity of CrossCheckGPT to variations in model architecture or training data.
+2. Lack of additional visual representations of the data flow or examples of the hallucination checks.
+3. Lack of a more comprehensive set of benchmarks, including more direct comparisons with state-of-the-art methods.
+
+Limitations:
+The effectiveness of the method hinges on the diversity and independence of the models used as evidence sources.  This dependence could pose challenges in scenarios where similar or homogenous models are prevalent.
+
+Rating:
+5: marginally below the acceptance threshold
+
+Confidence:
+2: You are willing to defend your assessment, but it is quite likely that you did not understand the central parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked.
+
+REVIEW 
+Summary:
+The paper proposes a novel multimodal fusion method named Generalized Multimodal Fusion (GMF), which leverages the Poisson-Nernst-Planck (PNP) equation from physics to manage the feature fusion process in multimodal learning tasks. By treating features as charged particles, the method allows for a dynamic separation and recombination of modality-specific and modality-invariant features, thereby enhancing the fusion process and reducing the entropy in downstream tasks. This approach addresses common challenges in multimodal learning, such as feature dimension consistency, data integrity, and adaptability across various tasks.
+
+Soundness:
+3: good
+
+Presentation:
+2: fair
+
+Contribution:
+3: good
+
+Strengths:
+1. The application of the PNP equation, traditionally used in physics to describe the dynamics of charged particles, to multimodal feature fusion is highly original.
+2. The paper is grounded in a solid theoretical framework that is well-articulated and robust.
+
+Weaknesses:
+1. The method, while innovative, appears to be complex in terms of implementation, particularly in how features are treated as charged particles. This complexity might limit its accessibility or usability for practitioners not familiar with the underlying physical equations.
+2. The paper could benefit from more rigorous quantitative analysis, including statistical significance tests and error analysis. Such analyses would provide a clearer picture of the method's performance relative to benchmarks.
+3. Can the authors provide the results on multimodal datasets with text-image modalities [1] ?
+
+[1] Provable Dynamic Fusion for Low-Quality Multimodal Data.
+
+Limitations:
+Yes
+
+Rating:
+5: marginally below the acceptance threshold
+
+Confidence:
+3: You are fairly confident in your assessment. It is possible that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked.
+
+REVIEW 
+Summary:
+In this paper, the authors combined the Poisson-Nernst-Planck (PNP) equation with information entropy theory and proposed a generalized multimodal fusion approach, which disassociates modality-specific and modality-invariant features, thereby reducing the join entropy of input features and meanwhile decreasing the downstream task-related information entropy. The experimental results demonstrate that the proposed approach can improve the generalization and robustness of multimodal tasks.
+
+Soundness:
+3: good
+
+Presentation:
+2: fair
+
+Contribution:
+3: good
+
+Strengths:
+- It is innovative to employ PNP for solving the multimodal fusion issue, by treating features as charged particles to disassociate them. 
+- A generalized multimodal fusion approach was designed, which can overcome the strong assumptions made by existing methods. 
+- Experiments showed the effectiveness of the proposed GMF approach in efficiency and flexibility.
+
+Weaknesses:
+- Significance test (e.g., Wilcoxon signed-rank test) would be helpful to better illustrate the significance of the proposed method compared against baselines. 
+- Social impacts are not explicitly discussed in the paper/appendix.
+
+Limitations:
+Please refer to Weakness and Question, which are the aspects suggested to be further improved.
+
+Rating:
+6: marginally above the acceptance threshold
+
+Confidence:
+3: You are fairly confident in your assessment. It is possible that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked.
+
+";0
