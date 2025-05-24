@@ -76,7 +76,7 @@ _SCORER = flags.DEFINE_string(
 )
 
 _OPTIMIZER = flags.DEFINE_string(
-    "optimizer", "gpt-4.1-nano", "The name of the optimizer LLM."
+    "optimizer", "gpt-4o-mini", "The name of the optimizer LLM."
 )
 
 _DATASET = flags.DEFINE_string(
@@ -612,7 +612,7 @@ def main(_):
       raw_data = pd.concat([raw_data, single_task_df])
 
   if (len(raw_data) > 1000):
-    raw_data = raw_data.sample(1000)
+    raw_data = raw_data.sample(500)
 
   if dataset_name == "mmlu":
     num_examples = raw_data.shape[0]
@@ -628,8 +628,8 @@ def main(_):
     train_ratio = 0.8
     eval_ratio = 0.2
   elif dataset_name == "metareview":
-    train_ratio = 0.3
-    eval_ratio = 0.3
+    train_ratio = 0.4
+    eval_ratio = 0.4
   else:
     assert dataset_name == "bbh"
     train_ratio = 0.2
@@ -672,7 +672,7 @@ def main(_):
     # old_instruction_score_threshold = 0.15  # for GSM8K
   else:
     assert scorer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini"}
-    old_instruction_score_threshold = 0.45
+    old_instruction_score_threshold = 0.5
 
   if scorer_llm_name == "text-bison":
     extract_final_answer_by_prompting_again = False
@@ -692,7 +692,7 @@ def main(_):
   # edit the value of the variable below, instead of editing the number of
   # decodes in model parameters, because those values are limited by model
   # serving configs.
-  num_generated_instructions_in_each_step = 12
+  num_generated_instructions_in_each_step = 8
   num_search_steps = 100
 
 
@@ -709,7 +709,7 @@ def main(_):
   evaluate_old_ins_on_few_shot = False
   # every this number of steps, compute the accuracies of current-step
   # instructions on the validation set
-  eval_interval = 3
+  eval_interval = 4
 
   max_num_instructions = (
       6  # the maximum number of instructions and scores in the meta-prompt
