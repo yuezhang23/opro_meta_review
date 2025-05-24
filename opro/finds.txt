@@ -1,0 +1,176 @@
+Notes
+1. initial prompts:
+    "" -is probably the an adversarial prompt, it is causing chinese prompt and it makes the predictor no longer a bianry classifier
+    0.52/0.64 - reduce stochasticity in plateau
+
+2. with temperature optimizaor = 1.4 0r 1.5, they start to hallucinate both in ptrdiction (not no or yes) 
+    and generating instruction (foreign language and abort)
+
+3. Optimizor temp = 1.0, stuck in local optimial
+
+4. instructions :
+    3 - stuck in local minimum
+    8 - 
+    12 -
+
+5. test data varience 
+
+
+
+
+
+
+
+Opt0
+meta_prompt=================================================================================
+Your task is to generate the instruction <INS>. Below are some previous instructions with their scores in ascending order. Higher scores indicate better quality.
+
+
+# Task: Assess whether the overall tone, main conclusion, or implicit recommendation of the review explicitly or implicitly supports acceptance of the paper. Respond with only "Yes" if the review favors acceptance or "No" if it indicates rejection, ignoring minor criticisms. Your decision should reflect the dominant stance of the review, without extra comments or justifications. End your response immediately after providing the label.
+Score:
+76
+
+
+# Task: Review the given text and determine whether the review's overall position favors acceptance (label as "Yes") or rejection (label as "No"). Your decision should be based solely on the primary tone and recommendation conveyed—identifying whether the review advocates for accepting or rejecting the paper—without considering minor criticisms or reservations. Provide only "Yes" or "No".
+Score:
+76
+
+
+# Task: Analyze the review to determine whether it primarily supports an overall acceptance ("Yes") or rejection ("No") recommendation for the paper. Your decision should be based solely on the implicit or explicit positive tone and main conclusion that favor acceptance. Ignore any minor criticisms or reservations, and respond only with "Yes" if the review indicates a recommendation to accept, or "No" if it recommends rejection. End your response immediately after choosing.
+Score:
+77
+
+
+# Task: Evaluate whether the overall tone of the review explicitly or implicitly supports acceptance of the paper. Focus solely on the main positive or supportive stance, ignoring minor criticisms or reservations. Respond only with "Yes" if the review favors acceptance, or "No" if it leans toward rejection. Justify your answer based on the primary sentiment or endorsement conveyed in the review.
+Score:
+77
+
+
+# Task: Carefully assess the overall sentiment, main conclusion, and implicit or explicit recommendation toward acceptance or rejection in the review. Ignore minor critiques and reservations. Based solely on the main endorsement, assign "Yes" if it favors acceptance or "No" if it leans toward rejection. Provide only this single label as the output, with no additional explanations or comments.
+Score:
+78
+
+
+# Task: Given the provided review text, assign a label "Yes" if the overall impression, main conclusion, or implicit recommendation indicates acceptance of the paper, even if partial or with reservations; if the dominant sentiment favors rejection, assign "No". Disregard minor criticisms; base your decision solely on whether the review subtends a positive or negative stance towards acceptance for the main body as a whole. Respond with only "Yes" or "No" without additional commentary.
+Score:
+79
+
+
+
+The following exemplars show how to apply your text: you replace <INS> in each input with your instruction, then read the Text and give a Label. A good instruction should give the corrent outputs as shown in the exemplars
+
+# Task
+<INS> 
+
+# Output format
+Answer Yes or No as labels
+
+# Prediction
+Text: reviews....
+Label: Yes
+
+# Task
+<INS> 
+
+# Output format
+Answer Yes or No as labels
+
+# Prediction
+Text: reviews....
+Label: Yes
+
+# Task
+<INS> 
+
+# Output format
+Answer Yes or No as labels
+
+# Prediction
+Text: reviews....
+Label: Yes
+
+
+
+Generate an instruction that is different from all the instructions <INS> above, The instruction should begin with <INS> and end with </INS>. The instruction should be concise, effective, A good instruction should give the corrent Label as shown in the exemplars and should has a higher score than all the instructions <INS> above.
+
+
+
+meta_prompt=================================================================================
+
+
+
+Opt1
+meta_prompt=================================================================================
+Your task is to generate the instruction <INS>. Below are some previous instructions with their scores in ascending order. Higher scores indicate better quality.
+
+
+# Task: Assess whether the overall tone, main conclusion, or implicit recommendation of the review explicitly or implicitly supports acceptance of the paper. Respond with only "Yes" if the review favors acceptance or "No" if it indicates rejection, ignoring minor criticisms. Your decision should reflect the dominant stance of the review, without extra comments or justifications. End your response immediately after providing the label.
+Score:
+76
+
+
+# Task: Review the given text and determine whether the review's overall position favors acceptance (label as "Yes") or rejection (label as "No"). Your decision should be based solely on the primary tone and recommendation conveyed—identifying whether the review advocates for accepting or rejecting the paper—without considering minor criticisms or reservations. Provide only "Yes" or "No".
+Score:
+76
+
+
+# Task: Analyze the review to determine whether it primarily supports an overall acceptance ("Yes") or rejection ("No") recommendation for the paper. Your decision should be based solely on the implicit or explicit positive tone and main conclusion that favor acceptance. Ignore any minor criticisms or reservations, and respond only with "Yes" if the review indicates a recommendation to accept, or "No" if it recommends rejection. End your response immediately after choosing.
+Score:
+77
+
+
+# Task: Evaluate whether the overall tone of the review explicitly or implicitly supports acceptance of the paper. Focus solely on the main positive or supportive stance, ignoring minor criticisms or reservations. Respond only with "Yes" if the review favors acceptance, or "No" if it leans toward rejection. Justify your answer based on the primary sentiment or endorsement conveyed in the review.
+Score:
+77
+
+
+# Task: Carefully assess the overall sentiment, main conclusion, and implicit or explicit recommendation toward acceptance or rejection in the review. Ignore minor critiques and reservations. Based solely on the main endorsement, assign "Yes" if it favors acceptance or "No" if it leans toward rejection. Provide only this single label as the output, with no additional explanations or comments.
+Score:
+78
+
+
+# Task: Given the provided review text, assign a label "Yes" if the overall impression, main conclusion, or implicit recommendation indicates acceptance of the paper, even if partial or with reservations; if the dominant sentiment favors rejection, assign "No". Disregard minor criticisms; base your decision solely on whether the review subtends a positive or negative stance towards acceptance for the main body as a whole. Respond with only "Yes" or "No" without additional commentary.
+Score:
+79
+
+
+
+The following exemplars show how to apply your text: you replace <INS> in each input with your instruction, then read the Text and give a Label. A good instruction should give the corrent outputs as shown in the exemplars
+
+# Task
+<INS> 
+
+# Output format
+Answer Yes or No as labels
+
+# Prediction
+Text: reviews....
+Label: Yes
+
+# Task
+<INS> 
+
+# Output format
+Answer Yes or No as labels
+
+# Prediction
+Text: reviews....
+Label: Yes
+
+# Task
+<INS> 
+
+# Output format
+Answer Yes or No as labels
+
+# Prediction
+Text: reviews....
+Label: Yes
+
+
+
+Generate an instruction that is different from all the instructions <INS> above, The instruction should begin with <INS> and end with </INS>. The instruction should be concise, effective, A good instruction should give the corrent Label as shown in the exemplars and should has a higher score than all the instructions <INS> above.
+
+
+
+meta_prompt=================================================================================

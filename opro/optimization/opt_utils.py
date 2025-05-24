@@ -164,7 +164,7 @@ def gen_meta_prompt(
   meta_prompt = ""
   print_meta_prompt = ""
   if meta_prompt_type == "both_instructions_and_exemplars":
-    if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4o-mini"}:
+    if optimizer_llm_name.lower() in {"gpt-4.1-nano", "gpt-4o-mini"}:
       if instruction_pos == "A_begin":
         meta_prompt_old_instruction_part = (
             "Your task is to generate the answer starting sentence <Start>."
@@ -196,7 +196,7 @@ def gen_meta_prompt(
     # add QA pairs if few_shot_qa_pairs == True
     meta_prompt_exemplar_part = ""
     if few_shot_qa_pairs:
-      if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4o-mini"}:
+      if optimizer_llm_name.lower() in {"gpt-4.1-nano", "gpt-4o-mini"}:
         meta_prompt_exemplar_part += (
             "The following exemplars show how to apply your text: you replace"
             " <INS> in each input with your instruction, then read the Text and give"
@@ -234,20 +234,14 @@ def gen_meta_prompt(
           elif instruction_pos == "Q_end":
             meta_prompt_exemplar_part += f"\ninput:\nQ: {question}\n<INS>\nA:"
           else:  # instruction_pos == "A_begin"
-            if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4o-mini"}:
+            if optimizer_llm_name.lower() in {"gpt-4.1-nano", "gpt-4o-mini"}:
               meta_prompt_exemplar_part += f"\nQ: {question}\nA: <Start>"
             else:
               assert optimizer_llm_name.lower() == "text-bison"
               meta_prompt_exemplar_part += f"\ninput:\nQ: {question}\nA: <INS>"
         else:  # when there're no "Q:" and "A:" in the prompt
           assert instruction_pos in {"Q_begin", "Q_end"}
-          if optimizer_llm_name.lower() in {"gpt-3.5-turbo"}:
-            if instruction_pos == "Q_begin":
-              meta_prompt_exemplar_part += f"\nProblem:\n<INS>\n{question}\n"
-            elif instruction_pos == "Q_end":
-              meta_prompt_exemplar_part += f"\nProblem:\n{question}\n<INS>\n"
-          else:
-            assert optimizer_llm_name.lower() == "gpt-4o-mini"
+          if optimizer_llm_name.lower() in {"gpt-4.1-nano", "gpt-4o-mini"}:
             if instruction_pos == "Q_begin":
               # meta_prompt_exemplar_part += f"\n# Task: <INS>\n# Text: {question}\n"
               print_meta_prompt += f"# Task\n<INS> \n\n# Output format\nAnswer Yes or No as labels\n\n# Prediction\nText: reviews....\n"
@@ -255,7 +249,7 @@ def gen_meta_prompt(
             elif instruction_pos == "Q_end":
               meta_prompt_exemplar_part += f"\nText:\n{question}\n#instruction: <INS>\n"
 
-        if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4o-mini"}:
+        if optimizer_llm_name.lower() in {"gpt-4.1-nano", "gpt-4o-mini"}:
           meta_prompt_exemplar_part += (
               f"Label: {"Yes" if true_answer == 1 else "No"}\n\n"
           )
@@ -280,7 +274,7 @@ def gen_meta_prompt(
     else:
       meta_prompt += meta_prompt_old_instruction_part
 
-    if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4o-mini"}:
+    if optimizer_llm_name.lower() in {"gpt-4.1-nano", "gpt-4o-mini"}:
       if instruction_pos == "A_begin":
         meta_prompt += (
             "\n\nGenerate a starting sentence that is different from all the"
@@ -768,14 +762,20 @@ def run_evolution(**kwargs):
       if meta_prompt_type == "both_instructions_and_exemplars":
         start_string = "<INS>"
         end_string = "</INS>"
-        if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4o-mini"}:
-          start_index = raw_outputs.index(start_string) + len(start_string)
-          end_index = raw_outputs.index(end_string)
-          new_inst = raw_outputs[start_index:end_index].strip()
-          generated_instructions_raw.append(new_inst)
+        if optimizer_llm_name.lower() in {"gpt-4.1-nano", "gpt-4o-mini"}:
+          try:
+            if start_string in raw_outputs and end_string in raw_outputs:
+              start_index = raw_outputs.index(start_string) + len(start_string)
+              end_index = raw_outputs.index(end_string)
+              new_inst = raw_outputs[start_index:end_index].strip()
+              generated_instructions_raw.append(new_inst)
+            else:
+              print(f"Warning: Could not find {start_string} or {end_string} in optimizer output, skipping")
+          except Exception as e:
+            print(f"Warning: Error extracting instruction from optimizer output: {str(e)}, skipping")
         
         # raw_outputs = raw_outputs[:remaining_num_instructions_to_generate]
-        # if optimizer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4o-mini"}:
+        # if optimizer_llm_name.lower() in {"gpt-4.1-nano", "gpt-4o-mini"}:
         #   if instruction_pos == "A_begin":
         #     start_string = "<Start>"
         #     end_string = "</Start>"

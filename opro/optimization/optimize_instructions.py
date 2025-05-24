@@ -25,7 +25,6 @@ Step 4: run
 
 ```
 python optimize_instructions.py \
-    --optimizer="gpt-3.5-turbo" --scorer="text-bison" \
     --instruction_pos="A_begin" --dataset="gsm8k" --task="train"
 ```
 
@@ -77,7 +76,7 @@ _SCORER = flags.DEFINE_string(
 )
 
 _OPTIMIZER = flags.DEFINE_string(
-    "optimizer", "gpt-4o-mini", "The name of the optimizer LLM."
+    "optimizer", "gpt-4.1-nano", "The name of the optimizer LLM."
 )
 
 _DATASET = flags.DEFINE_string(
@@ -98,7 +97,7 @@ _INSTRUCTION_POS = flags.DEFINE_string(
 
 _INITIAL_PROMPTS = flags.DEFINE_string(
     "initial_prompts",
-    "Given the reviews (Text), answer if a paper would be accepted (Yes) or not (No) by an academic conference.", 
+    "Given the reviews (Text), answer if a paper would be accepted (Yes) or not (No).", 
     "The initial instructions to search for.",
 )
 
@@ -169,12 +168,12 @@ def main(_):
 
   assert scorer_llm_name in {
       "text-bison",
-      "gpt-3.5-turbo",
+      "gpt-4.1-nano",
       "gpt-4o-mini",
   }
   assert optimizer_llm_name in {
       "text-bison",
-      "gpt-3.5-turbo",
+      "gpt-4.1-nano",
       "gpt-4o-mini",
   }
   assert meta_prompt_type in {
@@ -200,7 +199,7 @@ def main(_):
   )
 
   # make sure the scorer and optimizer models are callable
-  if scorer_llm_name in {"gpt-3.5-turbo", "gpt-4o-mini"}:
+  if scorer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini"}:
     assert openai_api_key, "The OpenAI API key must be provided."
     openai.api_key = openai_api_key
   else:
@@ -210,7 +209,7 @@ def main(_):
     ), "A PaLM API key is needed when prompting the text-bison model."
     palm.configure(api_key=palm_api_key)
 
-  if optimizer_llm_name in {"gpt-3.5-turbo", "gpt-4o-mini"}:
+  if optimizer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini"}:
     assert openai_api_key, "The OpenAI API key must be provided."
     openai.api_key = openai_api_key
   else:
@@ -287,7 +286,7 @@ def main(_):
     call_scorer_server_func = call_scorer_finetuned_palm_server_func
 
   else:
-    assert scorer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4o-mini"}
+    assert scorer_llm_name.lower() in {"gpt-4.1-nano", "gpt-4o-mini"}
     scorer_gpt_max_decode_steps = 1024
     scorer_gpt_temperature = 0.0
 
@@ -349,7 +348,7 @@ def main(_):
     call_optimizer_server_func = call_optimizer_finetuned_palm_server_func
 
   else:
-    assert optimizer_llm_name in {"gpt-3.5-turbo", "gpt-4o-mini"}
+    assert optimizer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini"}
     optimizer_gpt_max_decode_steps = 1024
     optimizer_gpt_temperature = 1.3
 
@@ -672,15 +671,15 @@ def main(_):
     old_instruction_score_threshold = 0.0
     # old_instruction_score_threshold = 0.15  # for GSM8K
   else:
-    assert scorer_llm_name in {"gpt-3.5-turbo", "gpt-4o-mini"}
-    old_instruction_score_threshold = 0.5
+    assert scorer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini"}
+    old_instruction_score_threshold = 0.45
 
   if scorer_llm_name == "text-bison":
     extract_final_answer_by_prompting_again = False
     include_qa = False
     evaluate_in_parallel = False
   else:
-    assert scorer_llm_name in {"gpt-3.5-turbo", "gpt-4o-mini"}
+    assert scorer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini"}
     extract_final_answer_by_prompting_again = True
     include_qa = False
     evaluate_in_parallel = True
@@ -693,11 +692,11 @@ def main(_):
   # edit the value of the variable below, instead of editing the number of
   # decodes in model parameters, because those values are limited by model
   # serving configs.
-  num_generated_instructions_in_each_step = 8
-  num_search_steps = 150
+  num_generated_instructions_in_each_step = 12
+  num_search_steps = 100
 
 
-  initial_instructions = [_INITIAL_PROMPTS.value, "Given the reviews of an academic paper, evaluate the overall sentiment expressed by the reviewers, taking into account both the strengths and weaknesses highlighted. Pay special attention to how the reviewers reconcile positive contributions with any criticisms, and assess whether the overall impression leans towards acceptance or rejection. Specifically, consider the significance of the contributions, the robustness of experimental results, and the potential impact of the research. Based on this holistic view, label the paper as accepted (Yes) or rejected (No).",]
+  initial_instructions = [_INITIAL_PROMPTS.value]
 
   few_shot_qa_pairs = True
   # one of {'accumulative_most_frequent', 'current_most_frequent', 'random',
@@ -705,7 +704,7 @@ def main(_):
   # show exemplars done wrong most often by currently shown instructions
   few_shot_selection_criteria = 'current_most_frequent'
   # whether to evaluate generated instructions on the exemplars in meta-prompt
-  evaluate_generated_ins_on_few_shot = False
+  evaluate_generated_ins_on_few_shot = True
   # whether to evaluate old instructions on the exemplars in the meta-prompt
   evaluate_old_ins_on_few_shot = False
   # every this number of steps, compute the accuracies of current-step
@@ -713,7 +712,7 @@ def main(_):
   eval_interval = 3
 
   max_num_instructions = (
-      8  # the maximum number of instructions and scores in the meta-prompt
+      6  # the maximum number of instructions and scores in the meta-prompt
   )
   # The number of buckets when converting scores to integers in the meta-prompt.
   num_score_buckets = 100

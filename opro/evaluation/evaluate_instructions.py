@@ -177,12 +177,12 @@ def main(_):
 
   assert scorer_llm_name in {
       "text-bison",
-      "gpt-3.5-turbo",
+      "gpt-4.1-nano",
       "gpt-4",
   }
 
   # make sure the model is callable
-  if scorer_llm_name in {"gpt-3.5-turbo", "gpt-4"}:
+  if scorer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini"}:
     assert openai_api_key, "The OpenAI API key must be provided."
     openai.api_key = openai_api_key
   else:
@@ -203,7 +203,7 @@ def main(_):
       " beginning of the answer."
   )
 
-  is_gpt_model = bool(scorer_llm_name in {"gpt-3.5-turbo", "gpt-4"})
+  is_gpt_model = bool(scorer_llm_name in {"gpt-4.1-nano", "gpt-4"})
 
   if dataset_name == "mmlu":
     root_data_folder_path = os.path.join(ROOT_DATA_FOLDER_PATH, "MMLU-data")
@@ -271,7 +271,7 @@ def main(_):
 
   else:
     # GPT models
-    assert scorer_llm_name.lower() in {"gpt-3.5-turbo", "gpt-4"}
+    assert scorer_llm_name.lower() in {"gpt-4.1-nano", "gpt-4o-mini"}
     scorer_gpt_max_decode_steps = 1024
     scorer_gpt_temperature = 0.0
 
@@ -533,7 +533,7 @@ def main(_):
     evaluate_in_parallel = False
   else:
     # GPT models
-    assert scorer_llm_name in {"gpt-3.5-turbo", "gpt-4"}
+    assert scorer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini"}
     batch_size = 1
     num_servers = 1
     extract_final_answer_by_prompting_again = False
