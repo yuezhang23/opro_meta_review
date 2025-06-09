@@ -291,7 +291,7 @@ def fetch_true_answer(data, idx, dataset_name):
   elif dataset_name == "bbh":
     return data[idx]["target"]
   elif dataset_name == "metareview":
-    return "Yes" if data.iloc[idx, 2] == 1 else "No"
+    return "Yes" if data.iloc[idx, 2] == '1' or data.iloc[idx, 2] == 1 else "No"
   elif dataset_name == "multiarith":
     return int(data[idx]["lSolutions"][0])
   else:
@@ -656,6 +656,12 @@ def evaluate_single_instruction(
       fetch_true_answer(data, idx=idx, dataset_name=dataset_name)
       for idx in eval_index_all
   ]
+
+  # true_1s = 0
+  # for val in true_answers:
+  #   if val == "Yes":
+  #     true_1s += 1
+  # print(f"true len: {true_1s}  false len: {len(eval_index_all) - true_1s}")
 
   # generate raw prompts
   raw_prompts_flattened = []

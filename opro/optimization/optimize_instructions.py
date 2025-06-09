@@ -60,6 +60,7 @@ from opro.optimization import opt_utils
 import pandas as pd
 import read_data
 from liquid import Template
+from sklearn.model_selection import train_test_split
 
 
 config = dotenv_values(os.path.join(OPRO_ROOT_PATH, ".env"))
@@ -164,7 +165,7 @@ def main(_):
     }
   else:
     assert dataset_name == "metareview"
-    assert task_name in {"train", "test", "train,test"}
+    # assert task_name in {"train", "test", "train,test"}
 
   assert scorer_llm_name in {
       "text-bison",
@@ -240,7 +241,7 @@ def main(_):
       OPRO_ROOT_PATH,
       "outputs",
       "optimization-results",
-      f"{dataset_name.upper()}-{task_name}-s-{scorer_llm_name}-o-{optimizer_llm_name}-{datetime_str}/",
+      f"{datetime_str}-{task_name}-s-{scorer_llm_name}-o-{optimizer_llm_name}/",
   )
   result_by_instruction_folder = os.path.join(
       save_folder, "result_by_instruction"
@@ -350,7 +351,7 @@ def main(_):
   else:
     assert optimizer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini"}
     optimizer_gpt_max_decode_steps = 1024
-    optimizer_gpt_temperature = 1.3
+    optimizer_gpt_temperature = 1.35
 
     optimizer_llm_dict = dict()
     optimizer_llm_dict["max_decode_steps"] = optimizer_gpt_max_decode_steps
@@ -607,12 +608,21 @@ def main(_):
     else:
       assert dataset_name == "metareview"
       task_name = t
-      f_gsm = os.path.join(root_data_folder_path, f"review_{task_name}.csv")
+      f_gsm = os.path.join(root_data_folder_path, f"{task_name}.csv")
       single_task_df = pd.read_csv(f_gsm, sep=";", header=None)
+      # Add column names for clarity
+      single_task_df.columns = ['id', 'text', 'label']
       raw_data = pd.concat([raw_data, single_task_df])
 
-  if (len(raw_data) > 1000):
-    raw_data = raw_data.sample(500)
+  # Stratified sampling to preserve class distribution
+  if dataset_name == "metareview":
+    # Get the label column (column 2)
+    labels = raw_data.iloc[:, 2]
+    # Perform stratified sampling
+    raw_data = raw_data.groupby(labels, group_keys=False).apply(
+        lambda x: x.sample(min(len(x), int(500 * len(x) / len(raw_data))))
+    ).reset_index(drop=True)
+
 
   if dataset_name == "mmlu":
     num_examples = raw_data.shape[0]
@@ -622,14 +632,17 @@ def main(_):
     assert dataset_name in {"metareview"}
     num_examples = len(raw_data)
     print(f"number of examples: {num_examples}")
+    # Print class distribution after sampling
+    print("Class distribution after sampling:")
+    print(raw_data.iloc[:, 2].value_counts(normalize=True))
 
   # ================ split data into train/val/test ==========================
   if dataset_name == "mmlu":
     train_ratio = 0.8
     eval_ratio = 0.2
   elif dataset_name == "metareview":
-    train_ratio = 0.4
-    eval_ratio = 0.4
+    train_ratio = 0.6
+    eval_ratio = 0.2
   else:
     assert dataset_name == "bbh"
     train_ratio = 0.2
@@ -644,27 +657,55 @@ def main(_):
       f"train_ratio: {train_ratio}, eval_ratio: {eval_ratio}, "
       f"test_ratio: {test_ratio}"
   )
+  
   np.random.seed(0)
-  train_index = np.sort(
-      np.array(
-          np.random.choice(
-              num_examples, size=int(train_ratio * num_examples), replace=False
-          )
-      )
-  )
-  eval_and_test_index = np.sort(
-      np.array(list(set(np.arange(num_examples)) - set(train_index)))
-  )
-  eval_index = np.sort(
-      np.array(
-          np.random.choice(
-              eval_and_test_index,
-              size=int(eval_ratio * num_examples),
-              replace=False,
-          )
-      )
-  )
-
+  if dataset_name == "metareview":
+    # First split into train and temp (val+test)
+    train_data, temp_data = train_test_split(
+        raw_data,
+        train_size=train_ratio,
+        stratify=raw_data.iloc[:, 2],
+        random_state=0
+    )
+    # Then split temp into val and test
+    val_ratio_adjusted = eval_ratio / (1 - train_ratio)
+    eval_data, test_data = train_test_split(
+        temp_data,
+        train_size=val_ratio_adjusted,
+        stratify=temp_data.iloc[:, 2],
+        random_state=0
+    )
+    # Get indices for compatibility with rest of code
+    train_index = np.sort(train_data.index.values)
+    eval_index = np.sort(eval_data.index.values)
+    test_index = np.sort(test_data.index.values)
+    
+    # Print class distributions
+    print("\nClass distribution in splits:")
+    print("Train set:", train_data.iloc[:, 2].value_counts(normalize=True))
+    print("Validation set:", eval_data.iloc[:, 2].value_counts(normalize=True))
+    print("Test set:", test_data.iloc[:, 2].value_counts(normalize=True))
+  else:
+    # Original random split for other datasets
+    train_index = np.sort(
+        np.array(
+            np.random.choice(
+                num_examples, size=int(train_ratio * num_examples), replace=False
+            )
+        )
+    )
+    eval_and_test_index = np.sort(
+        np.array(list(set(np.arange(num_examples)) - set(train_index)))
+    )
+    eval_index = np.sort(
+        np.array(
+            np.random.choice(
+                eval_and_test_index,
+                size=int(eval_ratio * num_examples),
+                replace=False,
+            )
+        )
+    )
 
   # ========== set other optimization experiment hyperparameters ==============
   if scorer_llm_name == "text-bison":

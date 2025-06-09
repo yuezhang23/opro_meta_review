@@ -1,3 +1,4 @@
+id;text;label
 uS9RZH6K65;"REVIEW 
 Summary:
 This paper proposes a denoising framework to alleviate the influence of noisy text descriptions on open-vocabulary action recognition in real scenarios. A comprehensive analysis of the noise rate/type in text description is provided and the robustness evaluation of existing OVAR methods is conducted. A DENOISER framework with generative-discriminative optimization is proposed. The experiments demonstrate the effectiveness of the framework.
