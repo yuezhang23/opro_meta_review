@@ -8,3 +8,5 @@ METADATA
 *.egg-info
 __pycache__/
 .env
+/data/
+/pkl_analyze/*
