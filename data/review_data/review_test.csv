@@ -1,4 +1,3 @@
-id;text;label
 uS9RZH6K65;"REVIEW 
 Summary:
 This paper proposes a denoising framework to alleviate the influence of noisy text descriptions on open-vocabulary action recognition in real scenarios. A comprehensive analysis of the noise rate/type in text description is provided and the robustness evaluation of existing OVAR methods is conducted. A DENOISER framework with generative-discriminative optimization is proposed. The experiments demonstrate the effectiveness of the framework.
@@ -23901,7 +23900,7 @@ Strengths:
 Weaknesses:
 1. Rotational Robustness: Further clarification is needed regarding the experimental settings in Table 4. Specifically, it is unclear whether ""w/o rotation"" and ""w/ rotation"" refer to rotation augmentation during training or testing.
 
-1. Missing Citations: A similar approach exists in 2D pixel-level correspondence, as detailed in the work by Lee et al. (CVPR 2023). This study also utilizes local-level dominant orientation from rotation-equivariant features and normalizes the equivariant feature using the dominant orientation for an invariant descriptor. It would be beneficial to cite this work and discuss the similarities and differences. 
+1. Missing Citations: A similar approach exists in 2D pixel-level correspondence, as detailed in the work by Lee et al. (CVPR 2023). This study also utilizes local-level dominant orientation from rotation-equivariant features and normalizes the equivariant feature using the dominant orientation for an invariant descriptor. It would be beneficial to cite this work and discuss the similarities and differences.
 
 [A] Learning Rotation-Equivariant Features for Visual Correspondence (Lee et al., CVPR 2023)
 

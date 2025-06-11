@@ -27,7 +27,7 @@ from tqdm import tqdm
 import numpy as np
 from opro.evaluation import metrics
 import pandas as pd
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
 
 OPRO_ROOT_PATH = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -291,7 +291,7 @@ def fetch_true_answer(data, idx, dataset_name):
   elif dataset_name == "bbh":
     return data[idx]["target"]
   elif dataset_name == "metareview":
-    return "Yes" if data.iloc[idx, 2] == '1' or data.iloc[idx, 2] == 1 else "No"
+    return "Yes" if (data.iloc[idx, 2] == '1' or data.iloc[idx, 2] == 1) else "No"
   elif dataset_name == "multiarith":
     return int(data[idx]["lSolutions"][0])
   else:
@@ -778,22 +778,13 @@ def evaluate_single_instruction(
       print("second round of prompting finished")
 
 
-   # calculate F1 score for accuracies, take yes as 1 and no as 0, based on true_answers
-  true_answers_binary = [1 if str(ans).lower() == "yes" else 0 for ans in true_answers]
-  accuracies_binary = [0] * len(raw_answers_second_round)
-  if extract_final_answer_by_prompting_again:
-    for i, ans in enumerate(raw_answers_second_round):
-      if str(ans).lower() == "yes":
-        accuracies_binary[i] = 1
-      elif str(ans).lower() == "no":
-        accuracies_binary[i] = 0
-      else:
-        accuracies_binary[i] = 1 - true_answers_binary[i]
-  else:
-    accuracies_binary = [1 if str(ans).lower() == "yes" else 0 for ans in raw_answers]
-  print(f"raw_answers_second_round: {raw_answers_second_round}")
-  score_f1 = f1_score(true_answers_binary, accuracies_binary, average='micro')
-  print(f"second round of prompting - F1 score: {score_f1}")
+  selected_data = [data.iloc[idx, 2] for idx in eval_index_all]
+  raw_answers_second_round_digit = [1 if str(ans).lower() == "yes" else 0 for ans in raw_answers_second_round]
+  accuracy = accuracy_score(selected_data, raw_answers_second_round_digit)
+  # micro_f1 = f1_score(selected_data, raw_answers_second_round_digit, average='micro')
+  score_f1 = f1_score(selected_data, raw_answers_second_round_digit, average='macro')
+  print(f"second round of prompting - F1 score: {score_f1} - accuracy:{accuracy}")
+  print(f"second round of raw_answers: {raw_answers_second_round}")
 
   if verbose:
     print(

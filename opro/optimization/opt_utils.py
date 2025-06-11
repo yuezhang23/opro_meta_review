@@ -1006,43 +1006,44 @@ def run_evolution(**kwargs):
     # =============================== eval ====================================
     # every eval_interval steps, evaluate the instructions that were generated
     # in the current step and were not skipped
-    if not i_step % eval_interval:
-      for instruction in generated_instructions_raw:
-        # if the instruction wasn't skipped in any step
-        if instruction in instruction_score_dict:
-          if instruction not in instruction_eval_score_dict:
-            if verbose:
-              print(f"\nevaluating on the validation set ============================================= \n")
-            detailed_results_df = eval_utils.evaluate_single_instruction(
-                data=raw_data,
-                instruction=instruction,
-                eval_index_all=eval_index,
-                batch_size=batch_size,
-                call_server_func=call_scorer_server_func,
-                dataset_name=dataset_name,
-                num_servers=num_servers,
-                extract_final_answer_by_prompting_again=extract_final_answer_by_prompting_again,
-                include_qa=include_qa,
-                evaluate_in_parallel=evaluate_in_parallel,
-                instruction_pos=instruction_pos,
-                is_multiple_choice=is_multiple_choice_eval,
-                prediction_treat_as_number=prediction_treat_as_number,
-                prediction_treat_as_bool=prediction_treat_as_bool,
-                prediction_num_decimals=0,
-                max_retry=5,
-                sleep_time=180,
-                verbose=verbose,
-            )
-            eval_score = detailed_results_df["f1_score"].iloc[0]
-            eval_detailed_results_df_dict[instruction] = detailed_results_df
-            instruction_eval_score_dict[instruction] = eval_score
-          else:
-            eval_score = instruction_eval_score_dict[instruction]
-          print(
-              f"EVAL: \nStep {i_step}, instruction: {instruction}, eval score:"
-              f" {eval_score:.2f}"
-          )
-          eval_results.append((i_step, instruction, eval_score))
+    # if not i_step % eval_interval:
+    #   for instruction in generated_instructions_raw:
+    #     # if the instruction wasn't skipped in any step
+    #     if instruction in instruction_score_dict:
+    #       if instruction not in instruction_eval_score_dict:
+    #         if verbose:
+    #           print(f"\nevaluating on the validation set ============================================= \n")
+    #         if eval_ratio > 0:
+    #           detailed_results_df = eval_utils.evaluate_single_instruction(
+    #               data=raw_data,
+    #               instruction=instruction,
+    #               eval_index_all=eval_index,
+    #               batch_size=batch_size,
+    #               call_server_func=call_scorer_server_func,
+    #               dataset_name=dataset_name,
+    #               num_servers=num_servers,
+    #               extract_final_answer_by_prompting_again=extract_final_answer_by_prompting_again,
+    #               include_qa=include_qa,
+    #               evaluate_in_parallel=evaluate_in_parallel,
+    #               instruction_pos=instruction_pos,
+    #               is_multiple_choice=is_multiple_choice_eval,
+    #               prediction_treat_as_number=prediction_treat_as_number,
+    #               prediction_treat_as_bool=prediction_treat_as_bool,
+    #               prediction_num_decimals=0,
+    #               max_retry=5,
+    #               sleep_time=180,
+    #               verbose=verbose,
+    #           )
+    #           eval_score = detailed_results_df["f1_score"].iloc[0]
+    #           eval_detailed_results_df_dict[instruction] = detailed_results_df
+    #           instruction_eval_score_dict[instruction] = eval_score
+    #       else:
+    #         eval_score = instruction_eval_score_dict[instruction]
+    #       print(
+    #           f"EVAL: \nStep {i_step}, instruction: {instruction}, eval score:"
+    #           f" {eval_score:.2f}"
+    #       )
+    #       eval_results.append((i_step, instruction, eval_score))
 
     # ===================== save up-to-date results ===========================
     results_dict = dict()
@@ -1066,49 +1067,7 @@ def run_evolution(**kwargs):
     results_dict["eval_detailed_results_df_dict"] = (
         eval_detailed_results_df_dict
     )
-    # Store all kwargs under 'args' key
-    results_dict["args"] = {
-        "num_search_steps": num_search_steps,
-        "old_instruction_score_threshold": old_instruction_score_threshold,
-        "scorer_llm_dict": scorer_llm_dict,
-        "optimizer_llm_dict": optimizer_llm_dict,
-        "extract_final_answer_by_prompting_again": extract_final_answer_by_prompting_again,
-        "include_qa": include_qa,
-        "evaluate_in_parallel": evaluate_in_parallel,
-        "tasks_all": tasks_all,
-        "train_ratio": train_ratio,
-        "eval_ratio": eval_ratio,
-        "test_ratio": test_ratio,
-        "train_index": train_index,
-        "eval_index": eval_index,
-        "dataset_name": dataset_name,
-        "task_name": task_name,
-        "num_examples": num_examples,
-        "root_data_folder_path": root_data_folder_path,
-        "optimizer_llm_temperature": optimizer_llm_temperature,
-        "optimizer_llm_temperature_schedule": optimizer_llm_temperature_schedule,
-        "optimizer_llm_temperature_end": optimizer_llm_temperature_end,
-        "initial_instructions": initial_instructions,
-        "multiple_choice_tasks": multiple_choice_tasks,
-        "raw_data": raw_data,
-        "call_scorer_server_func": call_scorer_server_func,
-        "call_optimizer_server_func": call_optimizer_server_func,
-        "instruction_pos": instruction_pos,
-        "prediction_treat_as_number": prediction_treat_as_number,
-        "prediction_treat_as_bool": prediction_treat_as_bool,
-        "result_by_instruction_folder": result_by_instruction_folder,
-        "few_shot_qa_pairs": few_shot_qa_pairs,
-        "num_score_buckets": num_score_buckets,
-        "max_num_instructions": max_num_instructions,
-        "meta_prompt_type": meta_prompt_type,
-        "meta_prompt_instructions_before_exemplars": meta_prompt_instructions_before_exemplars,
-        "few_shot_selection_criteria": few_shot_selection_criteria,
-        "optimizer_llm_name": optimizer_llm_name,
-        "num_generated_instructions_in_each_step": num_generated_instructions_in_each_step,
-        "evaluate_generated_ins_on_few_shot": evaluate_generated_ins_on_few_shot,
-        "num_few_shot_questions_for_instruction_refinement": num_few_shot_questions_for_instruction_refinement,
-        "evaluate_old_ins_on_few_shot": evaluate_old_ins_on_few_shot,
-    }
+
     with open(os.path.join(save_folder, "results_dict.pkl"), "wb") as fp:
       pickle.dump(results_dict, fp)
     print(f"\nsaved all results to\n{save_folder}")
