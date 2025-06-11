@@ -9,4 +9,4 @@ METADATA
 __pycache__/
 .env
 /data/
-/pkl_analyze/*
+pkl_analyze/*
