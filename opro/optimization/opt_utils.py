@@ -78,7 +78,7 @@ def gen_ins_and_score_pairs_substr(
       else:
         score_to_show = _bucketize_float(score, num_score_buckets)
       old_instructions_and_scores_str += (
-          f"\n# Task: {instruction}\nScore:\n{score_to_show}\n\n"
+          f"Task:\n{instruction}\nScore:\n{score_to_show}\n"
       )
   if return_str_only:
     return old_instructions_and_scores_str
@@ -244,8 +244,8 @@ def gen_meta_prompt(
           if optimizer_llm_name.lower() in {"gpt-4.1-nano", "gpt-4o-mini"}:
             if instruction_pos == "Q_begin":
               # meta_prompt_exemplar_part += f"\n# Task: <INS>\n# Text: {question}\n"
-              print_meta_prompt += f"# Task\n<INS> \n\n# Output format\nAnswer Yes or No as labels\n\n# Prediction\nText: reviews....\n"
-              meta_prompt_exemplar_part += f"# Task\n<INS> \n\n# Output format\nAnswer Yes or No as labels\n\n# Prediction\nText: {question}\n"
+              print_meta_prompt += f"# Task\n<INS> \n\n# Output format\nAnswer Only Yes or No as labels\n\n# Prediction\nText: reviews....\n"
+              meta_prompt_exemplar_part += f"# Task\n<INS> \n\n# Output format\nAnswer Only Yes or No as labels\n\n# Prediction\nText: {question}\n"
             elif instruction_pos == "Q_end":
               meta_prompt_exemplar_part += f"\nText:\n{question}\n#instruction: <INS>\n"
 
@@ -1006,44 +1006,44 @@ def run_evolution(**kwargs):
     # =============================== eval ====================================
     # every eval_interval steps, evaluate the instructions that were generated
     # in the current step and were not skipped
-    # if not i_step % eval_interval:
-    #   for instruction in generated_instructions_raw:
-    #     # if the instruction wasn't skipped in any step
-    #     if instruction in instruction_score_dict:
-    #       if instruction not in instruction_eval_score_dict:
-    #         if verbose:
-    #           print(f"\nevaluating on the validation set ============================================= \n")
-    #         if eval_ratio > 0:
-    #           detailed_results_df = eval_utils.evaluate_single_instruction(
-    #               data=raw_data,
-    #               instruction=instruction,
-    #               eval_index_all=eval_index,
-    #               batch_size=batch_size,
-    #               call_server_func=call_scorer_server_func,
-    #               dataset_name=dataset_name,
-    #               num_servers=num_servers,
-    #               extract_final_answer_by_prompting_again=extract_final_answer_by_prompting_again,
-    #               include_qa=include_qa,
-    #               evaluate_in_parallel=evaluate_in_parallel,
-    #               instruction_pos=instruction_pos,
-    #               is_multiple_choice=is_multiple_choice_eval,
-    #               prediction_treat_as_number=prediction_treat_as_number,
-    #               prediction_treat_as_bool=prediction_treat_as_bool,
-    #               prediction_num_decimals=0,
-    #               max_retry=5,
-    #               sleep_time=180,
-    #               verbose=verbose,
-    #           )
-    #           eval_score = detailed_results_df["f1_score"].iloc[0]
-    #           eval_detailed_results_df_dict[instruction] = detailed_results_df
-    #           instruction_eval_score_dict[instruction] = eval_score
-    #       else:
-    #         eval_score = instruction_eval_score_dict[instruction]
-    #       print(
-    #           f"EVAL: \nStep {i_step}, instruction: {instruction}, eval score:"
-    #           f" {eval_score:.2f}"
-    #       )
-    #       eval_results.append((i_step, instruction, eval_score))
+    if not i_step % eval_interval:
+      for instruction in generated_instructions_raw:
+        # if the instruction wasn't skipped in any step
+        if instruction in instruction_score_dict:
+          if instruction not in instruction_eval_score_dict:
+            if verbose:
+              print(f"\nevaluating on the validation set ============================================= \n")
+            if eval_ratio > 0:
+              detailed_results_df = eval_utils.evaluate_single_instruction(
+                  data=raw_data,
+                  instruction=instruction,
+                  eval_index_all=eval_index,
+                  batch_size=batch_size,
+                  call_server_func=call_scorer_server_func,
+                  dataset_name=dataset_name,
+                  num_servers=num_servers,
+                  extract_final_answer_by_prompting_again=extract_final_answer_by_prompting_again,
+                  include_qa=include_qa,
+                  evaluate_in_parallel=evaluate_in_parallel,
+                  instruction_pos=instruction_pos,
+                  is_multiple_choice=is_multiple_choice_eval,
+                  prediction_treat_as_number=prediction_treat_as_number,
+                  prediction_treat_as_bool=prediction_treat_as_bool,
+                  prediction_num_decimals=0,
+                  max_retry=5,
+                  sleep_time=180,
+                  verbose=verbose,
+              )
+              eval_score = detailed_results_df["f1_score"].iloc[0]
+              eval_detailed_results_df_dict[instruction] = detailed_results_df
+              instruction_eval_score_dict[instruction] = eval_score
+          else:
+            eval_score = instruction_eval_score_dict[instruction]
+          # print(
+          #     f"EVAL: \nStep {i_step}, instruction: {instruction}, eval score:"
+          #     f" {eval_score:.2f}"
+          # )
+          # eval_results.append((i_step, instruction, eval_score))
 
     # ===================== save up-to-date results ===========================
     results_dict = dict()

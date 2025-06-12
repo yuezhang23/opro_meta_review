@@ -351,7 +351,7 @@ def main(_):
   else:
     assert optimizer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini"}
     optimizer_gpt_max_decode_steps = 1024
-    optimizer_gpt_temperature = 1.3
+    optimizer_gpt_temperature = 1.4
 
     optimizer_llm_dict = dict()
     optimizer_llm_dict["max_decode_steps"] = optimizer_gpt_max_decode_steps
@@ -608,7 +608,7 @@ def main(_):
     else:
       assert dataset_name == "metareview"
       task_name = t
-      f_gsm = os.path.join(root_data_folder_path, f"review_{task_name}.csv")
+      f_gsm = os.path.join(root_data_folder_path, f"240+60_neurips_2024_train.csv")
       single_task_df = pd.read_csv(f_gsm, sep=";", header=None)
       # Add column names for clarity
       single_task_df.columns = ['id', 'text', 'label']
@@ -641,8 +641,8 @@ def main(_):
     train_ratio = 0.8
     eval_ratio = 0.2
   elif dataset_name == "metareview":
-    train_ratio = 0.3
-    eval_ratio = 0.3
+    train_ratio = 1.0
+    eval_ratio = 0.0
   else:
     assert dataset_name == "bbh"
     train_ratio = 0.2
@@ -734,10 +734,19 @@ def main(_):
   # decodes in model parameters, because those values are limited by model
   # serving configs.
   num_generated_instructions_in_each_step = 8
-  num_search_steps = 100
+  num_search_steps = 50
 
 
-  initial_instructions = [_INITIAL_PROMPTS.value, "Evaluate the following reviews to determine the likelihood of acceptance (Yes) or rejection (No) of the paper by an academic conference. Focus on the specific strengths and weaknesses pointed out by the reviewers, particularly emphasizing the originality, theoretical contributions, and empirical validation of the research. Assess how well the positive aspects of the paper counterbalance the criticisms raised. Take into account the reviewers\' confidence levels and ensure that your conclusion is well-supported by the review content, justifying the decision based on a comprehensive analysis of both favorable and unfavorable comments.",]
+  initial_instructions = [
+    "Assess the peer reviews of the research paper with a detailed focus on the proposed methodology, experimental validation, clarity of presentation, and significance of contributions. Determine whether the advantages, such as innovative approaches and solid evaluations, overwhelmingly offset the criticisms, thereby supporting a decision on acceptance (Yes) or rejection (No). Provide a comprehensive rationale supported by pinpointed extracts from the reviews that emphasize the work's importance and potential to advance the field.",
+    "Conduct a comprehensive evaluation of the peer reviews for the research paper by assessing the methodologies discussed, theoretical foundation, clarity of presentation, and practical implications. Decide whether the merits, including innovative approaches and strength of results, surpass the limitations presented by the reviewers, warranting acceptance (Yes) or rejection (No). Justify your decision with clear, detailed references to specific points from the reviews that exemplify key values of the work against the criticisms raised.",
+    "Thoroughly evaluate the peer reviews for the research paper, concentrating on the novelty of the contribution, relevance to the field, clarity of communication, and rigor of empirical evaluation. Assess whether the strengths—such as innovative theoretical insights, robust experimental results, and comprehensive discussions—substantially outweigh the noted weaknesses, thereby indicating a recommendation for acceptance (Yes) or rejection (No). Support your conclusion with specific examples from the reviews that effectively illustrate the paper's significance and merit, as well as instances where criticisms may have been overstated. Provide an overall judgment based on this analysis.",
+    "Review the provided peer evaluations of the research paper, emphasizing the originality of the proposed method, its performance on relevant datasets, and the clarity of communication concerning its contributions to the field. Assess whether the positive feedback regarding the paper's strengths outweighs the criticisms raised. Based on this analysis, render a decision on acceptance (Yes) or rejection (No), substantiating your choice with specific examples from the feedback that display the paper's overall impact and significance. ",
+    "Conduct a detailed appraisal of the peer reviews for the submitted research paper, focusing on the innovations, algorithms, and empirical effectiveness reported. Based on this assessment, determine if the paper's overall merits significantly surpass its shortcomings to justify adoption (Yes) or dismissal (No). Ensure your conclusion is backed by explicit statements from the reviews that illuminate the paper's potential contributions and affirmative aspects in light of the criticisms raised.",
+    "Assess the peer reviews of the research paper by thoroughly analyzing the insights regarding its theoretical contributions, methodological robustness, overall clarity, and application potential. Determine if the strengths notably outperform the weaknesses, and consequently advise on the paper's acceptance (Yes) or rejection (No). Justify your recommendation with elements extracted from the reviews that affirm the paper’s significance within its research area and suggest its future impact.",
+  ]
+  # "Evaluate the following reviews to determine the likelihood of acceptance (Yes) or rejection (No) of the paper by an academic conference. Focus on the specific strengths and weaknesses pointed out by the reviewers, particularly emphasizing the originality, theoretical contributions, and empirical validation of the research. Assess how well the positive aspects of the paper counterbalance the criticisms raised. Take into account the reviewers\' confidence levels and ensure that your conclusion is well-supported by the review content, justifying the decision based on a comprehensive analysis of both favorable and unfavorable comments.",]
+
 
   few_shot_qa_pairs = True
   # one of {'accumulative_most_frequent', 'current_most_frequent', 'random',
@@ -750,7 +759,7 @@ def main(_):
   evaluate_old_ins_on_few_shot = False
   # every this number of steps, compute the accuracies of current-step
   # instructions on the validation set
-  eval_interval = 3
+  eval_interval = 6
 
   max_num_instructions = (
       6  # the maximum number of instructions and scores in the meta-prompt

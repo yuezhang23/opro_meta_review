@@ -260,7 +260,7 @@ def gen_prompt(
     assert instruction_pos in {"Q_begin", "Q_end"}
     if instruction_pos == "Q_begin":
       if instruction:
-        prompt += f"# Task\n{instruction} \n\n# Output format\nAnswer Yes or No as labels\n\n"
+        prompt += f"# Task\n{instruction} \n\n# Output format\nAnswer Only Yes or No as labels\n\n"
         # prompt += f"# Task\n{instruction} \n\n"
       prompt += f"# Prediction\nText: {question}\n"
     else:  # instruction_pos == "Q_end"
@@ -781,9 +781,10 @@ def evaluate_single_instruction(
   selected_data = [data.iloc[idx, 2] for idx in eval_index_all]
   raw_answers_second_round_digit = [1 if str(ans).lower() == "yes" else 0 for ans in raw_answers_second_round]
   accuracy = accuracy_score(selected_data, raw_answers_second_round_digit)
-  # micro_f1 = f1_score(selected_data, raw_answers_second_round_digit, average='micro')
-  score_f1 = f1_score(selected_data, raw_answers_second_round_digit, average='macro')
-  print(f"second round of prompting - F1 score: {score_f1} - accuracy:{accuracy}")
+  micro_f1 = f1_score(selected_data, raw_answers_second_round_digit, average='micro')
+  binary_f1 = f1_score(selected_data, raw_answers_second_round_digit, average='binary', pos_label=0)
+  score_f1 = f1_score(selected_data, raw_answers_second_round_digit, average='macro') 
+  print(f"second round of prompting - F1 score: {score_f1} - accuracy:{accuracy} - micro_f1:{micro_f1} - binary_f1:{binary_f1}")
   print(f"second round of raw_answers: {raw_answers_second_round}")
 
   if verbose:
@@ -884,6 +885,8 @@ def evaluate_single_instruction(
               true_answers,
               accuracies,
               [score_f1] * len(eval_index_all),
+              [micro_f1] * len(eval_index_all),
+              [binary_f1] * len(eval_index_all),
           )
       ),
       columns=[
@@ -894,6 +897,8 @@ def evaluate_single_instruction(
           "true_answer",
           "accuracy",
           "f1_score",
+          "micro_f1",
+          "binary_f1",
       ],
   )
   if extract_final_answer_by_prompting_again:
