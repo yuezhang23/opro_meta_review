@@ -119,6 +119,7 @@ def main(_):
   dataset_name = _DATASET.value.lower()
   task_name = _TASK.value
   meta_prompt_type = _META_PROMPT_TYPE.value
+  initial_prompt = _INITIAL_PROMPTS.value
 
   assert dataset_name in {
       "mmlu",
@@ -165,17 +166,19 @@ def main(_):
     }
   else:
     assert dataset_name == "metareview"
-    # assert task_name in {"train", "test", "train,test"}
+    assert task_name in {"train", "test", "train,test"}
 
   assert scorer_llm_name in {
       "text-bison",
       "gpt-4.1-nano",
       "gpt-4o-mini",
+      "o4-mini",
   }
   assert optimizer_llm_name in {
       "text-bison",
       "gpt-4.1-nano",
       "gpt-4o-mini",
+      "o4-mini",
   }
   assert meta_prompt_type in {
       "both_instructions_and_exemplars",
@@ -200,7 +203,7 @@ def main(_):
   )
 
   # make sure the scorer and optimizer models are callable
-  if scorer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini"}:
+  if scorer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini", "o4-mini"}:
     assert openai_api_key, "The OpenAI API key must be provided."
     openai.api_key = openai_api_key
   else:
@@ -210,7 +213,7 @@ def main(_):
     ), "A PaLM API key is needed when prompting the text-bison model."
     palm.configure(api_key=palm_api_key)
 
-  if optimizer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini"}:
+  if optimizer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini", "o4-mini"}:
     assert openai_api_key, "The OpenAI API key must be provided."
     openai.api_key = openai_api_key
   else:
@@ -287,7 +290,7 @@ def main(_):
     call_scorer_server_func = call_scorer_finetuned_palm_server_func
 
   else:
-    assert scorer_llm_name.lower() in {"gpt-4.1-nano", "gpt-4o-mini"}
+    assert scorer_llm_name.lower() in {"gpt-4.1-nano", "gpt-4o-mini", "o4-mini"}
     scorer_gpt_max_decode_steps = 1024
     scorer_gpt_temperature = 0.0
 
@@ -349,7 +352,7 @@ def main(_):
     call_optimizer_server_func = call_optimizer_finetuned_palm_server_func
 
   else:
-    assert optimizer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini"}
+    assert optimizer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini", "o4-mini"}
     optimizer_gpt_max_decode_steps = 1024
     optimizer_gpt_temperature = 1.4
 
@@ -608,7 +611,7 @@ def main(_):
     else:
       assert dataset_name == "metareview"
       task_name = t
-      f_gsm = os.path.join(root_data_folder_path, f"240+60_neurips_2024_train.csv")
+      f_gsm = os.path.join(root_data_folder_path, f"100+100_review_{task_name}_balanced.csv")
       single_task_df = pd.read_csv(f_gsm, sep=";", header=None)
       # Add column names for clarity
       single_task_df.columns = ['id', 'text', 'label']
@@ -659,34 +662,6 @@ def main(_):
   )
   
   np.random.seed(0)
-  # if dataset_name == "metareview":
-  #   # First split into train and temp (val+test)
-  #   train_data, temp_data = train_test_split(
-  #       raw_data,
-  #       train_size=train_ratio,
-  #       stratify=raw_data.iloc[:, 2],
-  #       random_state=0
-  #   )
-  #   # Then split temp into val and test
-  #   val_ratio_adjusted = eval_ratio / (1 - train_ratio)
-  #   eval_data, test_data = train_test_split(
-  #       temp_data,
-  #       train_size=val_ratio_adjusted,
-  #       stratify=temp_data.iloc[:, 2],
-  #       random_state=0
-  #   )
-  #   # Get indices for compatibility with rest of code
-  #   train_index = np.sort(train_data.index.values)
-  #   eval_index = np.sort(eval_data.index.values)
-  #   test_index = np.sort(test_data.index.values)
-    
-  #   # Print class distributions
-  #   print("\nClass distribution in splits:")
-  #   print("Train set:", train_data.iloc[:, 2].value_counts(normalize=True))
-  #   print("Validation set:", eval_data.iloc[:, 2].value_counts(normalize=True))
-  #   print("Test set:", test_data.iloc[:, 2].value_counts(normalize=True))
-  # else:
-    # Original random split for other datasets
   train_index = np.sort(
       np.array(
           np.random.choice(
@@ -712,15 +687,15 @@ def main(_):
     old_instruction_score_threshold = 0.0
     # old_instruction_score_threshold = 0.15  # for GSM8K
   else:
-    assert scorer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini"}
-    old_instruction_score_threshold = 0.4
+    assert scorer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini", "o4-mini"}
+    old_instruction_score_threshold = 0.5
 
   if scorer_llm_name == "text-bison":
     extract_final_answer_by_prompting_again = False
     include_qa = False
     evaluate_in_parallel = False
   else:
-    assert scorer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini"}
+    assert scorer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini", "o4-mini"}
     extract_final_answer_by_prompting_again = True
     include_qa = False
     evaluate_in_parallel = True
@@ -738,28 +713,27 @@ def main(_):
 
 
   initial_instructions = [
-    "Assess the peer reviews of the research paper with a detailed focus on the proposed methodology, experimental validation, clarity of presentation, and significance of contributions. Determine whether the advantages, such as innovative approaches and solid evaluations, overwhelmingly offset the criticisms, thereby supporting a decision on acceptance (Yes) or rejection (No). Provide a comprehensive rationale supported by pinpointed extracts from the reviews that emphasize the work's importance and potential to advance the field.",
-    "Conduct a comprehensive evaluation of the peer reviews for the research paper by assessing the methodologies discussed, theoretical foundation, clarity of presentation, and practical implications. Decide whether the merits, including innovative approaches and strength of results, surpass the limitations presented by the reviewers, warranting acceptance (Yes) or rejection (No). Justify your decision with clear, detailed references to specific points from the reviews that exemplify key values of the work against the criticisms raised.",
-    "Thoroughly evaluate the peer reviews for the research paper, concentrating on the novelty of the contribution, relevance to the field, clarity of communication, and rigor of empirical evaluation. Assess whether the strengths—such as innovative theoretical insights, robust experimental results, and comprehensive discussions—substantially outweigh the noted weaknesses, thereby indicating a recommendation for acceptance (Yes) or rejection (No). Support your conclusion with specific examples from the reviews that effectively illustrate the paper's significance and merit, as well as instances where criticisms may have been overstated. Provide an overall judgment based on this analysis.",
-    "Review the provided peer evaluations of the research paper, emphasizing the originality of the proposed method, its performance on relevant datasets, and the clarity of communication concerning its contributions to the field. Assess whether the positive feedback regarding the paper's strengths outweighs the criticisms raised. Based on this analysis, render a decision on acceptance (Yes) or rejection (No), substantiating your choice with specific examples from the feedback that display the paper's overall impact and significance. ",
-    "Conduct a detailed appraisal of the peer reviews for the submitted research paper, focusing on the innovations, algorithms, and empirical effectiveness reported. Based on this assessment, determine if the paper's overall merits significantly surpass its shortcomings to justify adoption (Yes) or dismissal (No). Ensure your conclusion is backed by explicit statements from the reviews that illuminate the paper's potential contributions and affirmative aspects in light of the criticisms raised.",
-    "Assess the peer reviews of the research paper by thoroughly analyzing the insights regarding its theoretical contributions, methodological robustness, overall clarity, and application potential. Determine if the strengths notably outperform the weaknesses, and consequently advise on the paper's acceptance (Yes) or rejection (No). Justify your recommendation with elements extracted from the reviews that affirm the paper’s significance within its research area and suggest its future impact.",
+    # start with biased instructions
+    initial_prompt,
+    # OPRO-35
+    "Analyze the peer reviews of the research paper to formulate a contextual recommendation for its acceptance (Yes) or rejection (No). Assess the originality of the contributions, empirical validity, and clarity of the results while systematically reviewing specific comments from peer evaluations. Make recommendations based on a net evaluation where strengths are clearly articulated, effectively outweighing acknowledged limitations. Ensure that your final decision carefully integrates the diversity of insights from the reviews, accentuating its scientific significance and endorsing actionable feedback. Aim to consolidate the overall impression that highlights both the impact of the research and realistic evaluations from the reviewers.",
   ]
-  # "Evaluate the following reviews to determine the likelihood of acceptance (Yes) or rejection (No) of the paper by an academic conference. Focus on the specific strengths and weaknesses pointed out by the reviewers, particularly emphasizing the originality, theoretical contributions, and empirical validation of the research. Assess how well the positive aspects of the paper counterbalance the criticisms raised. Take into account the reviewers\' confidence levels and ensure that your conclusion is well-supported by the review content, justifying the decision based on a comprehensive analysis of both favorable and unfavorable comments.",]
 
 
   few_shot_qa_pairs = True
   # one of {'accumulative_most_frequent', 'current_most_frequent', 'random',
   # 'constant'}
   # show exemplars done wrong most often by currently shown instructions
+  # few_shot_selection_criteria = 'accumulative_most_frequent'
   few_shot_selection_criteria = 'current_most_frequent'
   # whether to evaluate generated instructions on the exemplars in meta-prompt
   evaluate_generated_ins_on_few_shot = True
   # whether to evaluate old instructions on the exemplars in the meta-prompt
-  evaluate_old_ins_on_few_shot = False
+  # evaluate_old_ins_on_few_shot = False
+  evaluate_old_ins_on_few_shot = True
   # every this number of steps, compute the accuracies of current-step
   # instructions on the validation set
-  eval_interval = 6
+  eval_interval = 3
 
   max_num_instructions = (
       6  # the maximum number of instructions and scores in the meta-prompt

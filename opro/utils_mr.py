@@ -17,8 +17,10 @@ import concurrent.futures
 from jinja2 import Template
 import os
 from dotenv import load_dotenv
-
+from openai import OpenAI
 load_dotenv()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 def chatgpt(prompt, model, temperature=0.0, n=1, top_p=1, stop=None, max_tokens=1024, 
                   presence_penalty=0, frequency_penalty=0, logit_bias={}, timeout=30):
     messages = [{"role": "user", "content": prompt}]
@@ -41,7 +43,7 @@ def chatgpt(prompt, model, temperature=0.0, n=1, top_p=1, stop=None, max_tokens=
         try:
             r = requests.post('https://api.openai.com/v1/chat/completions',
                 headers = {
-                    "Authorization": f"Bearer {config['OPENAI_API_KEY']}",
+                    "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
                     "Content-Type": "application/json"
                 },
                 json = payload,
@@ -70,51 +72,61 @@ def chatgpt(prompt, model, temperature=0.0, n=1, top_p=1, stop=None, max_tokens=
 
 
 async def _fetch_single_completion(session, prompt, temperature, model, n, top_p, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, max_retries=8):
-    url = "https://api.openai.com/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": model,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": temperature,
-        "n": n,
-        "top_p": top_p,
-        "stop": stop,
-        "max_tokens": max_tokens,
-        "presence_penalty": presence_penalty,
-        "frequency_penalty": frequency_penalty,
-        "logit_bias": logit_bias
-    }
-    
-    for attempt in range(max_retries):
-        try:
-            async with session.post(url, headers=headers, json=payload) as resp:
-                if resp.status == 200:
-                    response_json = await resp.json()
-                    return response_json["choices"][0]["message"]["content"]
-                elif resp.status == 429:  
-                    retry_after = int(resp.headers.get('Retry-After', 5))
-                    await asyncio.sleep(retry_after)
-                    continue
-                else:
-                    error_text = await resp.text()
-                    print(f"API Error - Status: {resp.status}, Error: {error_text}")
-                    if attempt < max_retries - 1:
-                        await asyncio.sleep(2 ** attempt) 
+    if model == "o4-mini":
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        response = client.responses.create(
+            model="o4-mini",
+            reasoning={"effort": "high"},
+            input=[{"role": "user", "content": prompt}],
+        )
+        print(response.output_text)
+        return [response.output_text]
+    else:
+        url = "https://api.openai.com/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature,
+            "n": n,
+            "top_p": top_p,
+            "stop": stop,
+            "max_tokens": max_tokens,
+            "presence_penalty": presence_penalty,
+            "frequency_penalty": frequency_penalty,
+            "logit_bias": logit_bias
+        }
+        
+        for attempt in range(max_retries):
+            try:
+                async with session.post(url, headers=headers, json=payload) as resp:
+                    if resp.status == 200:
+                        response_json = await resp.json()
+                        return response_json["choices"][0]["message"]["content"]
+                    elif resp.status == 429:  
+                        retry_after = int(resp.headers.get('Retry-After', 5))
+                        await asyncio.sleep(retry_after)
                         continue
-                    raise Exception(f"Failed single completion: {resp.status}, {error_text}")
-        except asyncio.TimeoutError:
-            if attempt < max_retries - 1:
-                await asyncio.sleep(2 ** attempt)
-                continue
-            raise
-        except Exception as e:
-            if attempt < max_retries - 1:
-                await asyncio.sleep(2 ** attempt)
-                continue
-            raise
+                    else:
+                        error_text = await resp.text()
+                        print(f"API Error - Status: {resp.status}, Error: {error_text}")
+                        if attempt < max_retries - 1:
+                            await asyncio.sleep(2 ** attempt) 
+                            continue
+                        raise Exception(f"Failed single completion: {resp.status}, {error_text}")
+            except asyncio.TimeoutError:
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2 ** attempt)
+                    continue
+                raise
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2 ** attempt)
+                    continue
+                raise
 
 async def _run_batch(prompts, temperature, model, n, top_p, stop, max_tokens, presence_penalty, frequency_penalty, logit_bias, timeout=60):
     connector = aiohttp.TCPConnector(limit=20)  

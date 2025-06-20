@@ -20,27 +20,97 @@ import openai
 import os
 from dotenv import load_dotenv
 import opro.utils_mr
+from openai import OpenAI
 
 load_dotenv()  # Load environment variables from .env file
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+def get_prompt(prompt, model="o4-mini", reasoning={"effort": "high"}):
+    headers = {
+      "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
+      "Content-Type": "application/json"
+    }
+
+    payload = {
+        "model": model,
+        "reasoning": reasoning,
+        "input": [
+            { "role": "user", "content": prompt }
+        ],
+    }
+
+    response = requests.post(
+        "https://api.openai.com/v1/responses",
+        headers=headers,
+        json=payload
+    )
+
+    print(response.status_code)
+    print(response.json())
+    return 
+   
+def extract_text_from_o4_response(response_data):
+    """Extract text content from o4-mini response format."""
+    try:
+        # Navigate to the message content in the response
+        if 'output' in response_data and len(response_data['output']) > 1:
+            # Find the message type output (usually the second item)
+            for output_item in response_data['output']:
+                if output_item.get('type') == 'message' and 'content' in output_item:
+                    for content_item in output_item['content']:
+                        if content_item.get('type') == 'output_text' and 'text' in content_item:
+                            return content_item['text']
+        return None
+    except (KeyError, IndexError, TypeError):
+        return None
 
 def call_openai_server_single_prompt(prompt, model, max_decode_steps=1024, temperature=0.0, n=1, top_p=1, stop=None,
-                  presence_penalty=0, frequency_penalty=0, logit_bias={}, timeout=10):
+                  presence_penalty=0, frequency_penalty=0, logit_bias={}, timeout=600):
     messages = [{"role": "user", "content": prompt}]
-    payload = {
-        "messages": messages,
-        "model": model,
-        "temperature": temperature,
-        "n": n,
-        "top_p": top_p,
-        "stop": stop,
-        "max_tokens": max_decode_steps,
-        "presence_penalty": presence_penalty,
-        "frequency_penalty": frequency_penalty,
-        "logit_bias": logit_bias
-    } 
+   
+    if model == "o4-mini":
+      r = requests.post('https://api.openai.com/v1/responses',
+        headers = {
+            "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
+            "Content-Type": "application/json"
+        },
+        json = {
+            "model": "o4-mini",
+            "reasoning": {"effort": "medium"},
+            "input": [
+                {
+                    "role": "user", 
+                    "content": prompt
+                }
+            ],
+        },
+      )
+      response_data = r.json()
+      
+      # Extract the text content from the response
+      extracted_text = extract_text_from_o4_response(response_data)
+      if extracted_text:
+          print(f"Extracted text: {extracted_text}")
+          return extracted_text
+      else:
+          print("Could not extract text from response")
+          return response_data
+    else:
+      payload = {
+          "messages": messages,
+          "model": model,
+          "temperature": temperature,
+          "n": n,
+          "top_p": top_p,
+          "stop": stop,
+          "max_tokens": max_decode_steps,
+          "presence_penalty": presence_penalty,
+          "frequency_penalty": frequency_penalty,
+          "logit_bias": logit_bias
+      } 
     max_retries = 6
     base_delay = 1
-    
+  
     for retry in range(max_retries):
         try:
             r = requests.post('https://api.openai.com/v1/chat/completions',
