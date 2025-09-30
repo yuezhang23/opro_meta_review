@@ -98,7 +98,7 @@ _INSTRUCTION_POS = flags.DEFINE_string(
 
 _INITIAL_PROMPTS = flags.DEFINE_string(
     "initial_prompts",
-    "Given the reviews (Text), answer if a paper would be accepted (Yes) or not (No).", 
+    "Given the following reviews (text), determine if a paper would be accepted (Yes) or not (No) by an academic conference.",
     "The initial instructions to search for.",
 )
 
@@ -299,7 +299,7 @@ def main(_):
     scorer_gpt_dict["temperature"] = scorer_gpt_temperature
     scorer_gpt_dict["num_decodes"] = 1
     # tunable parameter
-    scorer_gpt_dict["batch_size"] = 6
+    scorer_gpt_dict["batch_size"] = 8
     scorer_gpt_dict["num_servers"] = 8
 
     scorer_llm_dict = {
@@ -354,13 +354,13 @@ def main(_):
   else:
     assert optimizer_llm_name in {"gpt-4.1-nano", "gpt-4o-mini", "o4-mini"}
     optimizer_gpt_max_decode_steps = 1024
-    optimizer_gpt_temperature = 1.4
+    optimizer_gpt_temperature = 1.35
 
     optimizer_llm_dict = dict()
     optimizer_llm_dict["max_decode_steps"] = optimizer_gpt_max_decode_steps
     optimizer_llm_dict["temperature"] = optimizer_gpt_temperature
-    optimizer_llm_dict["batch_size"] = 1
-    optimizer_llm_dict["num_decodes"] = 1
+    optimizer_llm_dict["batch_size"] = 8
+    optimizer_llm_dict["num_decodes"] = 8
     call_optimizer_server_func = functools.partial(
         prompt_utils.call_openai_server_func,
         model=optimizer_llm_name,
@@ -611,20 +611,11 @@ def main(_):
     else:
       assert dataset_name == "metareview"
       task_name = t
-      f_gsm = os.path.join(root_data_folder_path, f"100+100_review_{task_name}_balanced.csv")
+      f_gsm = os.path.join(root_data_folder_path, f"{task_name}_100_accept_100_reject.csv")
       single_task_df = pd.read_csv(f_gsm, sep=";", header=None)
       # Add column names for clarity
       single_task_df.columns = ['id', 'text', 'label']
       raw_data = pd.concat([raw_data, single_task_df])
-
-  # Stratified sampling to preserve class distribution
-  # if dataset_name == "metareview":
-  #   # Get the label column (column 2)
-  #   labels = raw_data.iloc[:, 2]
-  #   # Perform stratified sampling
-  #   raw_data = raw_data.groupby(labels, group_keys=False).apply(
-  #       lambda x: x.sample(min(len(x), int(500 * len(x) / len(raw_data))))
-  #   ).reset_index(drop=True)
 
 
   if dataset_name == "mmlu":
@@ -709,12 +700,16 @@ def main(_):
   # decodes in model parameters, because those values are limited by model
   # serving configs.
   num_generated_instructions_in_each_step = 8
-  num_search_steps = 50
+  num_search_steps = 100
 
 
   initial_instructions = [
     # start with biased instructions
-    initial_prompt,
+    # initial_prompt,
+    # OPRO-76
+    "Conduct a detailed evaluation of the peer reviews for the presented research paper, determining whether it should be accepted (Yes) or rejected (No). Pay close attention to the originality of contributions, clarity in explanations, the significance of empirical results, and methodological soundness. Your assessment should adequately reflect how strong positive feedback significantly counters identified critiques, leading to a well-reasoned recommendation. Synthesize key aspects from the reviews to provide a lucid justification for your decision, ensuring alignment with the majority consensus highlighted in the evaluations.",
+    # OPRO-79
+    "Evaluate the peer reviews of the submitted research paper to determine a firm recommendation on its acceptance (Yes) or rejection (No). Analyze the originality, methodological soundness, empirical results, and clarity of contributions while ensuring well-founded reasoning that emphasizes significant positive feedback as exceeding any shortcomings mentioned. Conclude with a synthesis that is reflective of the reviews' overall sentiment and the paper's potential impact in the field.",
     # OPRO-35
     "Analyze the peer reviews of the research paper to formulate a contextual recommendation for its acceptance (Yes) or rejection (No). Assess the originality of the contributions, empirical validity, and clarity of the results while systematically reviewing specific comments from peer evaluations. Make recommendations based on a net evaluation where strengths are clearly articulated, effectively outweighing acknowledged limitations. Ensure that your final decision carefully integrates the diversity of insights from the reviews, accentuating its scientific significance and endorsing actionable feedback. Aim to consolidate the overall impression that highlights both the impact of the research and realistic evaluations from the reviewers.",
   ]
@@ -736,7 +731,7 @@ def main(_):
   eval_interval = 3
 
   max_num_instructions = (
-      6  # the maximum number of instructions and scores in the meta-prompt
+      3  # the maximum number of instructions and scores in the meta-prompt
   )
   # The number of buckets when converting scores to integers in the meta-prompt.
   num_score_buckets = 100
